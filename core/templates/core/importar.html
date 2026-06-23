@@ -1,0 +1,78 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Contagem - Gestão</title>
+    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+</head>
+<body>
+
+    <div class="header center-card" style="max-width:500px; margin-bottom:25px; display:flex; justify-content:space-between; align-items:center;">
+        <h1 style="margin:0; font-size:24px;">Importar</h1>
+        <div class="nav-buttons">
+            <a href="{% url 'painel_gestao' %}" class="btn-nav">Painel</a>
+            <a href="{% url 'dashboard' %}" class="btn-nav btn-nav-blue">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="card center-card">
+        <h2>Atualizar Base de Dados</h2>
+        <p class="subtitle">Faça o upload dos arquivos <b>(.csv ou .xlsx)</b> para sincronizar o cadastro de Produtos, Endereços e Ruas.</p>
+
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+
+            <div class="file-drop-area" id="dropArea">
+                <div class="file-icon">📄</div>
+                <span class="file-msg" id="fileMsg">Clique ou arraste os arquivos aqui</span>
+                <span class="file-hint">Formatos suportados: .csv, .xlsx</span>
+                <input class="file-input" type="file" name="file" id="fileInput"
+                    accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    multiple required>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">Processar Planilhas</button>
+        </form>
+
+        {% if msg %}
+            <div class="alert {% if 'sucesso' in msg %}alert-success{% else %}alert-error{% endif %}">
+                {{ msg }}
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileMsg   = document.getElementById('fileMsg');
+        const dropArea  = document.getElementById('dropArea');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+
+        fileInput.addEventListener('change', function () {
+            if (fileInput.files.length > 1) {
+                fileMsg.textContent = fileInput.files.length + ' arquivos selecionados';
+            } else if (fileInput.files.length === 1) {
+                fileMsg.textContent = fileInput.files[0].name;
+            } else {
+                fileMsg.textContent = 'Clique ou arraste os arquivos aqui';
+            }
+            fileMsg.style.color = fileInput.files.length ? '#2563eb' : '#1e293b';
+        });
+
+        ['dragenter', 'dragover'].forEach(e =>
+            fileInput.addEventListener(e, () => dropArea.classList.add('is-active'))
+        );
+        ['dragleave', 'drop'].forEach(e =>
+            fileInput.addEventListener(e, () => dropArea.classList.remove('is-active'))
+        );
+
+        uploadForm.addEventListener('submit', function () {
+            submitBtn.textContent = 'Processando...';
+            submitBtn.disabled = true;
+        });
+    </script>
+
+</body>
+</html>

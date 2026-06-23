@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="icon" type="image/png" href="{% static 'core/favicon.png' %}">
+    <link rel="shortcut icon" href="{% static 'core/favicon.ico' %}" type="image/x-icon">
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">Django Admin</a> 
+    <span style="font-size: 14px; margin-left: 20px;">
+        <a href="{% url 'painel_gestao' %}" style="color: #6ee7b7; text-decoration: none; font-weight: bold;">➔ Voltar ao Painel de Gestão</a>
+    </span>
+</h1>
+{% endblock %}

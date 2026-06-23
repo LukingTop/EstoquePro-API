@@ -1,0 +1,86 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;">
+    
+    <div style="flex: 1; min-width: 300px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0; color: #333; text-align: center;">Taxa de Conflitos</h3>
+        <canvas id="conflitosChart"></canvas>
+    </div>
+
+    <div style="flex: 1; min-width: 300px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0; color: #333; text-align: center;">Produtividade (Top 5 Operadores)</h3>
+        <canvas id="produtividadeChart"></canvas>
+    </div>
+
+    <div style="flex: 2; min-width: 400px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0; color: #333; text-align: center;">Pallets Contados (Últimos 7 dias)</h3>
+        <canvas id="palletsChart"></canvas>
+    </div>
+
+</div>
+
+<script>
+    
+    // Gráfico de Conflitos (Doughnut)
+
+    new Chart(document.getElementById('conflitosChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['OK', 'Em Conflito', 'Descartada'],
+            datasets: [{
+                data: {{ grafico_conflitos_data|safe }},
+                backgroundColor: ['#22c55e', '#ef4444', '#94a3b8'],
+                borderWidth: 0
+            }]
+        },
+        options: { responsive: true }
+    });
+
+    // Gráfico de Produtividade (Barra Horizontal)
+
+    new Chart(document.getElementById('produtividadeChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ grafico_produtividade_labels|safe }},
+            datasets: [{
+                label: 'Contagens Realizadas',
+                data: {{ grafico_produtividade_data|safe }},
+                backgroundColor: '#3b82f6',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Gráfico de Pallets (Linha)
+
+    new Chart(document.getElementById('palletsChart'), {
+        type: 'line',
+        data: {
+            labels: {{ grafico_pallets_labels|safe }},
+            datasets: [{
+                label: 'Pallets',
+                data: {{ grafico_pallets_data|safe }},
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>
+
+{{ block.super }}
+{% endblock %}

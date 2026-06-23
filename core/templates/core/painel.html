@@ -1,0 +1,67 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Gestão - EstoquePro</title>
+    <link rel="icon" type="image/png" href="{% static 'core/favicon.png' %}">
+    <link rel="shortcut icon" href="{% static 'core/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+</head>
+<body>
+
+    <div class="header center-layout">
+        <h1>Painel de Gestão</h1>
+        <p>Selecione a área que deseja acessar</p>
+    </div>
+
+    <div class="grid-container">
+
+        <a href="{% url 'dashboard' %}" class="menu-card">
+            <div class="icon-wrapper bg-blue">📊</div>
+            <h2>Dashboard</h2>
+            <p>Acompanhe a produtividade dos operadores e o progresso das contagens diárias.</p>
+        </a>
+
+        <a href="{% url 'lista_contagens' %}" class="menu-card">
+            <div class="icon-wrapper bg-orange">📋</div>
+            <h2>Gestão de Contagens</h2>
+            <p>Edite contagens, visualize histórico de edições e gerencie registros do estoque.</p>
+        </a>
+
+        <a href="{% url 'importar_produtos' %}" class="menu-card">
+            <div class="icon-wrapper bg-purple">📤</div>
+            <h2>Importar Planilhas</h2>
+            <p>Importe a base de dados de produtos, ruas e posições a partir de planilhas locais.</p>
+        </a>
+
+        <a href="{% url 'selecionar_periodo_exportacao' %}" class="menu-card">
+            <div class="icon-wrapper bg-green">📥</div>
+            <h2>Exportar Relatório</h2>
+            <p>Escolha um período e gere um arquivo Excel apenas com as contagens desejadas.</p>
+        </a>
+
+        <a href="/admin/" class="menu-card">
+            <div class="icon-wrapper bg-slate">⚙️</div>
+            <h2>Painel Admin</h2>
+            <p>Gerencie usuários, permissões e visualize o banco de dados bruto do sistema.</p>
+        </a>
+
+        <a href="{% url 'resolucao_conflitos' %}" class="menu-card relative">
+            <div class="icon-wrapper bg-rose">⚔️</div>
+            <h2>Tratar Conflitos</h2>
+            <p>Resolva contagens duplicadas feitas por operadores diferentes offline.</p>
+        </a>
+
+        <a href="{% url 'criar_recontagem_lote' %}" class="menu-card">
+            <div class="icon-wrapper" style="background-color: #fef08a;">🔍</div>
+            <h2>Auditoria de Produto</h2>
+            <p>Dispare tarefas de recontagem em todos os endereços de um produto específico.</p>
+        </a>
+
+    </div> 
+
+</body>
+</html>

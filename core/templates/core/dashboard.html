@@ -1,0 +1,115 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Operacional - Sistema de Contagem</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Dashboard Operacional</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
+                ⏱ <span id="contador">Atualizando em 60s</span>
+            </p>
+        </div>
+        <div class="nav-buttons">
+            <a href="{% url 'painel_gestao' %}" class="btn btn-secondary">Voltar ao Painel</a>
+            <a href="/admin/" class="btn btn-secondary">Ir ao Admin</a>
+            <a href="{% url 'importar_produtos' %}" class="btn">Importar Dados</a>
+            <a href="{% url 'exportar_contagens' %}" class="btn btn-success">Exportar CSV</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="cards">
+            <div class="card card-stat">
+                <h3>Total de Pallets</h3>
+                <p>{{ total_pallets }}</p>
+            </div>
+            <div class="card card-stat">
+                <h3>Contagens Realizadas</h3>
+                <p>{{ total_contagens }}</p>
+            </div>
+        </div>
+        
+        <div class="charts">
+            <div class="card">
+                <h3 class="chart-title">Produtividade por Operador (Pallets)</h3>
+                <canvas id="produtividadeChart"></canvas>
+            </div>
+            <div class="card">
+                <h3 class="chart-title">Volume de Contagens (Diário)</h3>
+                <canvas id="diarioChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Lógica de Atualização Automática (Auto-Refresh) ---
+        let tempoRestante = 60; 
+        const contadorElemento = document.getElementById('contador');
+
+        setInterval(() => {
+            tempoRestante -= 1;
+            if (tempoRestante <= 0) {
+                contadorElemento.innerText = "Atualizando os dados...";
+                window.location.reload();
+            } else {
+                contadorElemento.innerText = `Atualizando em ${tempoRestante}s`;
+            }
+        }, 1000);
+
+        // --- Configuração dos Gráficos ---
+        Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+        Chart.defaults.color = '#64748b';
+
+        const ctxProd = document.getElementById('produtividadeChart').getContext('2d');
+        new Chart(ctxProd, {
+            type: 'bar',
+            data: {
+                labels: [{% for p in produtividade %}'{{ p.operador__username }}',{% endfor %}],
+                datasets: [{
+                    label: 'Pallets Contados',
+                    data: [{% for p in produtividade %}{{ p.total }},{% endfor %}],
+                    backgroundColor: '#2563eb',
+                    borderRadius: 6,
+                    barPercentage: 0.6
+                }]
+            },
+            options: { 
+                responsive: true, 
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { borderDash: [4, 4] } } }
+            }
+        });
+
+        const ctxDia = document.getElementById('diarioChart').getContext('2d');
+        new Chart(ctxDia, {
+            type: 'line',
+            data: {
+                labels: [{% for d in diario %}'{{ d.date|date:"d/m/Y" }}',{% endfor %}],
+                datasets: [{
+                    label: 'Registros',
+                    data: [{% for d in diario %}{{ d.total }},{% endfor %}],
+                    borderColor: '#16a34a',
+                    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#16a34a',
+                    pointRadius: 4
+                }]
+            },
+            options: { 
+                responsive: true, 
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { borderDash: [4, 4] } } }
+            }
+        });
+    </script>
+</body>
+</html>

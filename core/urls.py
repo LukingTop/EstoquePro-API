@@ -1,0 +1,120 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from django.views.generic import RedirectView
+from .views import ContagemListView, ContagemUpdateView, deletar_contagem
+from . import views
+
+router = DefaultRouter()
+
+router.register(
+    r'contagens',
+    views.ContagemViewSet,
+    basename='contagem'
+)
+
+router.register(
+    r'produtos',
+    views.ProdutoViewSet,
+    basename='produto'
+)
+
+router.register(
+    r'ruas',
+    views.RuaViewSet,
+    basename='rua'
+)
+
+router.register(
+    r'enderecos',
+    views.EnderecoViewSet,
+    basename='endereco'
+)
+
+router.register(
+    r'tarefas-recontagem',
+    views.TarefaRecontagemViewSet,
+    basename='tarefas-recontagem'
+)
+
+
+urlpatterns = [
+    # 1. Redireciona quem acessar a raiz exata (/) para o painel de gestão
+    path(
+        '', 
+        RedirectView.as_view(pattern_name='painel_gestao', permanent=False), 
+        name='redirecionar_raiz'
+    ),
+
+    # 2. Mantém o funcionamento do aplicativo no celular (rotas da API)
+    path(
+        '',
+        include(router.urls)
+    ),
+
+    path(
+        'painel/', 
+        views.painel_gestao, 
+        name='painel_gestao'
+    ),
+
+
+    path(
+        'importar-produtos/',
+        views.importar_produtos,
+        name='importar_produtos'
+    ),
+
+    path(
+        'exportar/',
+        views.exportar_contagens,
+        name='exportar_contagens'
+    ),
+    
+    path(
+        'exportar-periodo/',
+        views.selecionar_periodo_exportacao,
+        name='selecionar_periodo_exportacao'
+    ),
+    
+    path(
+        'gestao/',
+        ContagemListView.as_view(),
+        name='lista_contagens'
+    ),
+    
+    path(
+        'gestao/<int:pk>/editar/',
+        ContagemUpdateView.as_view(),
+        name='editar_contagem'
+    ),
+    
+    path(
+        'gestao/<int:pk>/deletar/',
+        deletar_contagem,
+        name='deletar_contagem'
+    ),
+    
+    path('config/versao-minima/', views.versao_minima_app, name='versao_minima_app'),
+    
+    path('ranking-diario/', views.ranking_diario, name='ranking_diario'),
+    
+    path('operador/atualizar-token/', views.atualizar_push_token, name='atualizar_push_token'),
+    
+    path('recontagem-lote/', views.criar_recontagem_lote, name='criar_recontagem_lote'),
+    
+    path('contagens-stage/', views.registrar_stage, name='registrar_stage'),
+
+    path('api/sync/', views.sincronizar_contagens_offline, name='sincronizar_offline'),
+
+    path('conflitos/', views.resolucao_conflitos, name='resolucao_conflitos'),
+
+    path('conflitos/resolver/<int:contagem_id>/', views.resolver_conflito, name='resolver_conflito'),
+    
+    path('operador/produtividade-diaria/', views.produtividade_diaria, name='produtividade_diaria'),
+
+    path(
+        'dashboard/',
+        views.dashboard,
+        name='dashboard'
+    ),
+]

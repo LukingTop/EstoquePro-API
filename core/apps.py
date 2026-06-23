@@ -1,0 +1,10 @@
+from django.apps import AppConfig
+
+class CoreConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'core'
+    verbose_name = "Gerenciamento de Estoque"
+
+    def ready(self):
+        import core.signals 
+        import core.auditlog_config

@@ -1,0 +1,182 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Contagem #{{ object.pk }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <!-- ── Cabeçalho ─────────────────────────────────────────────────────── -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-3xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Editar Contagem</h1>
+                <p class="text-sm text-slate-400 mt-0.5">
+                    Registro #{{ object.pk }} &middot; {{ object.data_hora|date:"d/m/Y H:i" }}
+                </p>
+            </div>
+            <a href="{% url 'lista_contagens' %}"
+               class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
+                ← Voltar
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-6 py-8 space-y-6">
+
+        <!-- ── Informações somente leitura ──────────────────────────────── -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">
+                Informações do Registro (não editáveis)
+            </h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                <div>
+                    <p class="text-xs text-slate-400 font-medium mb-1">Operador</p>
+                    <p class="font-semibold text-slate-800">{{ object.operador.username }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400 font-medium mb-1">Endereço</p>
+                    <p class="font-bold text-blue-600 text-lg">{{ object.endereco.codigo }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-400 font-medium mb-1">Data / Hora</p>
+                    <p class="font-semibold text-slate-800">{{ object.data_hora|date:"d/m/Y H:i" }}</p>
+                </div>
+                <div class="col-span-2 sm:col-span-3">
+                    <p class="text-xs text-slate-400 font-medium mb-1">Descrição do Produto</p>
+                    <p class="font-semibold text-slate-700">{{ object.descricao_produto }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Formulário de edição ──────────────────────────────────────── -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">
+                Campos Editáveis
+            </h2>
+
+            <form method="POST" novalidate>
+                {% csrf_token %}
+
+                <div class="space-y-5">
+
+                    <!-- Código do Produto -->
+                    <div>
+                        <label for="{{ form.codigo_produto.id_for_label }}"
+                               class="block text-sm font-semibold text-slate-700 mb-1.5">
+                            {{ form.codigo_produto.label }}
+                        </label>
+                        {{ form.codigo_produto }}
+                        {% if form.codigo_produto.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.codigo_produto.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Pallets -->
+                    <div>
+                        <label for="{{ form.pallets.id_for_label }}"
+                               class="block text-sm font-semibold text-slate-700 mb-1.5">
+                            {{ form.pallets.label }}
+                        </label>
+                        {{ form.pallets }}
+                        {% if form.pallets.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.pallets.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Observação -->
+                    <div>
+                        <label for="{{ form.observacao.id_for_label }}"
+                               class="block text-sm font-semibold text-slate-700 mb-1.5">
+                            {{ form.observacao.label }}
+                            <span class="text-slate-400 font-normal">(opcional)</span>
+                        </label>
+                        {{ form.observacao }}
+                        {% if form.observacao.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.observacao.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                <!-- Botões -->
+                <div class="flex gap-3 mt-8">
+                    <button type="submit"
+                            class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-sm">
+                        Salvar Alterações
+                    </button>
+                    <a href="{% url 'lista_contagens' %}"
+                       class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm text-center hover:bg-slate-200 transition">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- ── Histórico de edições ──────────────────────────────────────── -->
+        {% if object.historico_edicoes %}
+        <div class="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm">
+            <h2 class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-5">
+                🕐 Histórico de Edições
+            </h2>
+            <div id="historico-container" class="space-y-3"></div>
+        </div>
+
+        <script>
+            (function () {
+                let historico;
+                try {
+                    historico = JSON.parse('{{ object.historico_edicoes|escapejs }}');
+                } catch (e) {
+                    historico = [];
+                }
+
+                const container = document.getElementById('historico-container');
+                const nomesCampos = {
+                    codigo_produto: 'Código do Produto',
+                    pallets:        'Pallets',
+                    observacao:     'Observação',
+                };
+
+                // Exibe do mais recente para o mais antigo
+                [...historico].reverse().forEach(function (entry, index) {
+                    const camposHtml = (entry.campos_alterados || []).map(function (campo) {
+                        const label    = nomesCampos[campo] || campo;
+                        const anterior = (entry.valores_anteriores || {})[campo] ?? '—';
+                        return (
+                            '<span class="text-slate-600">' +
+                                '<strong>' + label + '</strong>: ' +
+                                '<span class="line-through text-slate-400">' + anterior + '</span>' +
+                            '</span>'
+                        );
+                    }).join(' &nbsp;·&nbsp; ');
+
+                    const div = document.createElement('div');
+                    div.className = 'flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100';
+                    div.innerHTML =
+                        '<div class="mt-1.5 w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0"></div>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<p class="text-sm font-semibold text-slate-700">' +
+                                entry.usuario +
+                                '<span class="text-slate-400 font-normal"> em ' + entry.data + '</span>' +
+                            '</p>' +
+                            '<p class="text-xs text-slate-500 mt-1">Alterou: ' + camposHtml + '</p>' +
+                        '</div>';
+                    container.appendChild(div);
+                });
+
+                if (historico.length === 0) {
+                    container.innerHTML =
+                        '<p class="text-sm text-slate-400">Nenhuma edição registrada.</p>';
+                }
+            })();
+        </script>
+        {% endif %}
+
+    </main>
+
+</body>
+</html>
