@@ -12,6 +12,8 @@ from django.contrib.admin.exceptions import NotRegistered
 from django_apscheduler.models import DjangoJob, DjangoJobExecution
 from auditlog.admin import LogEntryAdmin
 from auditlog.models import LogEntry
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
 
 
 try:
@@ -64,6 +66,13 @@ for model in [Group, DjangoJob, DjangoJobExecution]:
     except NotRegistered:
         pass
 
+admin.site.unregister(User)
+
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+    """Idêntico ao UserAdmin padrão, mas sem o texto de instrução na tela de criação."""
+    add_form_template = None
+
 
 from .models import (
     Rua,
@@ -77,17 +86,12 @@ from .models import (
 )
 
 
-# @admin.register(ModeloPlanilha)
-# class ModeloPlanilhaAdmin(admin.ModelAdmin):
-#    list_display = ('nome',)
-#    search_fields = ('nome',)
-
 @admin.register(Rua)
 class RuaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'codigo', 'modelo_planilha')
+    list_display = ('id', 'codigo')
     search_fields = ('codigo',)
     ordering = ['ordem']
-    list_select_related = ('modelo_planilha',)
+    fields = ('codigo',)           
 
 
 @admin.register(Endereco)
@@ -105,16 +109,23 @@ class PerfilOperadorAdmin(admin.ModelAdmin):
     list_filter = ('cargo',)
     filter_horizontal = ('ruas_permitidas',)
 
+    fields = ('user', 'cargo', 'ruas_permitidas')
+
     def exibir_ruas(self, obj):
         return ", ".join([r.codigo for r in obj.ruas_permitidas.all()])
     exibir_ruas.short_description = "Ruas Autorizadas"
 
+    
+    def has_add_permission(self, request):
+        return False
+
 
 @admin.register(Produto)
 class ProdutoAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'descricao', 'tipo', 'tipo_pallet')
+    list_display = ('codigo', 'descricao')
     search_fields = ('codigo', 'descricao')
     ordering = ['codigo']
+    fields = ('codigo', 'descricao')   
 
 
 @admin.register(Contagem)
@@ -146,13 +157,13 @@ class ContagemAdmin(admin.ModelAdmin):
 
     list_select_related = ('operador', 'atualizado_por', 'endereco')
 
-    
     readonly_fields = (
         'atualizado_por',
         'historico_edicoes',
         'data_hora',
     )
 
+   
     fields = (
         'operador',
         'endereco',
@@ -162,8 +173,6 @@ class ContagemAdmin(admin.ModelAdmin):
         'observacao',
         'em_conflito',
         'foi_descartada',
-        'uuid_aparelho',
-        'id_local',
         'historico_edicoes',
         'data_hora',
         'atualizado_por',
@@ -178,7 +187,6 @@ class ContagemAdmin(admin.ModelAdmin):
 
     # =====================
     # AÇÕES EM MASSA 
-    
     # =====================
     actions = ['validar_contagens', 'descartar_contagens']
 
@@ -257,17 +265,18 @@ class ContagemAdmin(admin.ModelAdmin):
             return field
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
+    # Torna o campo operador não obrigatório, pois será preenchido pelo save_model
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['operador'].required = False
+        return form
+
     # =====================
     # ARQUIVO JS PARA AUTO‑PREENCHER A DESCRIÇÃO E DESABILITAR O CAMPO OPERADOR
     # =====================
     class Media:
         js = ('core/js/admin_contagem.js',)
 
-# Torna o campo operador não obrigatório, pois será preenchido pelo save_model
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        form.base_fields['operador'].required = False
-        return form
 
 @admin.register(TarefaRecontagem)
 class TarefaRecontagemAdmin(admin.ModelAdmin):
@@ -276,18 +285,17 @@ class TarefaRecontagemAdmin(admin.ModelAdmin):
     search_fields = ('endereco__codigo', 'produto__codigo')
 
 
-@admin.register(ConfiguracaoSistema)
-class ConfiguracaoSistemaAdmin(admin.ModelAdmin):
-    list_display = ('versao_minima_app',)
-    fields = ('versao_minima_app',)
+# @admin.register(ConfiguracaoSistema)
+# class ConfiguracaoSistemaAdmin(admin.ModelAdmin):
+#     list_display = ('versao_minima_app',)
+#     fields = ('versao_minima_app',)
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+#     def has_add_permission(self, request):
+#         if ConfiguracaoSistema.objects.exists():
+#             return False
+#         return True
 
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def has_add_permission(self, request):
-        if ConfiguracaoSistema.objects.exists():
-            return False
-        return True
 
 # =========================================================
 # DASHBOARD GERENCIAL 

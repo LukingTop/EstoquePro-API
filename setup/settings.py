@@ -13,9 +13,9 @@ load_dotenv()
 sentry_sdk.init(
     dsn=os.getenv('SENTRY_DSN'),
     integrations=[DjangoIntegration()],
-    traces_sample_rate=1.0,                    
-    send_default_pii=True,                     
-    environment=os.getenv('SENTRY_ENVIRONMENT', 'development'),                
+    traces_sample_rate=1.0,
+    send_default_pii=True,
+    environment=os.getenv('SENTRY_ENVIRONMENT', 'development'),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -61,7 +61,7 @@ ROOT_URLCONF = 'setup.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],   
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -108,7 +108,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'pt-br'
 
-
 TIME_ZONE = 'America/Sao_Paulo'
 
 USE_I18N = True
@@ -118,8 +117,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'core/static',
+]
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 CORS_ALLOW_ALL_ORIGINS = True
@@ -135,10 +137,7 @@ JAZZMIN_SETTINGS = {
     "default_theme_mode": "light", 
     
     "topmenu_links": [
-       
         {"name": "Home",  "url": "admin:index", "permissions": ["auth.view_user"]},
-        
-        
         {
             "name": "Voltar ao Painel de Gestão", 
             "url": "painel_gestao", 

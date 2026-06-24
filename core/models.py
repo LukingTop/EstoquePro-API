@@ -82,16 +82,17 @@ class Endereco(models.Model):
     )
 
     codigo = models.CharField(
-        max_length=100,
+        max_length=6,
         unique=True,
-        verbose_name="Endereço"
+        verbose_name="Endereço",
+        help_text="Código do endereço com até 6 caracteres (ex: A1203 ou 12B045)"
     )
 
     rua_num = models.IntegerField(
         blank=True,
         null=True,
         db_index=True,
-        verbose_name="Rua"
+        verbose_name="Número da rua"
     )
 
     predio_num = models.IntegerField(
@@ -190,9 +191,10 @@ class PerfilOperador(models.Model):
 
 class Produto(models.Model):
     codigo = models.CharField(
-        max_length=100,
+        max_length=6,
         unique=True,
-        verbose_name="Código do Produto"
+        verbose_name="Código do Produto",
+        help_text="Código com exatamente 6 dígitos (ex.: 123456)"
     )
 
     descricao = models.CharField(
@@ -285,8 +287,9 @@ class Contagem(models.Model):
         verbose_name="Endereço"
     )
     codigo_produto = models.CharField(
-        max_length=100,
-        verbose_name="Código do Produto"
+        max_length=6,
+        verbose_name="Código do Produto",
+        help_text="Código do produto com até 6 dígitos"
     )
     descricao_produto = models.CharField(
         max_length=255,
