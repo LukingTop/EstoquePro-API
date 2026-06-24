@@ -146,8 +146,8 @@ class ContagemAdmin(admin.ModelAdmin):
 
     list_select_related = ('operador', 'atualizado_por', 'endereco')
 
+    
     readonly_fields = (
-        'operador',
         'atualizado_por',
         'historico_edicoes',
         'data_hora',
@@ -155,7 +155,6 @@ class ContagemAdmin(admin.ModelAdmin):
 
     fields = (
         'operador',
-        'atualizado_por',
         'endereco',
         'codigo_produto',
         'descricao_produto',
@@ -167,6 +166,7 @@ class ContagemAdmin(admin.ModelAdmin):
         'id_local',
         'historico_edicoes',
         'data_hora',
+        'atualizado_por',
     )
 
     ordering = (
@@ -177,13 +177,12 @@ class ContagemAdmin(admin.ModelAdmin):
     )
 
     # =====================
-    # AÇÕES EM MASSA
-    # =====================
+    # AÇÕES EM MASSA 
     
+    # =====================
     actions = ['validar_contagens', 'descartar_contagens']
 
     def validar_contagens(self, request, queryset):
-        """Ação em massa: valida contagens (remove conflito)"""
         atualizadas = queryset.filter(em_conflito=True).update(
             em_conflito=False,
             observacao="[VALIDADA PELO GESTOR] Conflito resolvido em massa."
@@ -195,7 +194,6 @@ class ContagemAdmin(admin.ModelAdmin):
     validar_contagens.short_description = "✅ Validar (Resolve Conflito)"
 
     def descartar_contagens(self, request, queryset):
-        """Ação em massa: descarta contagens (marca como rejeitada)"""
         atualizadas = queryset.update(
             em_conflito=False,
             foi_descartada=True,
@@ -207,7 +205,6 @@ class ContagemAdmin(admin.ModelAdmin):
     # =====================
     # EXIBIÇÃO DO STATUS 
     # =====================
-    
     def status_conflito(self, obj):
         if getattr(obj, 'foi_descartada', False):
             return format_html(
@@ -226,6 +223,51 @@ class ContagemAdmin(admin.ModelAdmin):
     status_conflito.short_description = "Status"
     status_conflito.admin_order_field = 'em_conflito'
 
+    # =====================
+    # PREENCHE AUTOMATICAMENTE O OPERADOR AO CRIAR
+    # =====================
+    def save_model(self, request, obj, form, change):
+        if not change:                     # só na criação
+            obj.operador = request.user
+        super().save_model(request, obj, form, change)
+
+    # =====================
+    # DEFINE O VALOR INICIAL DO CAMPO 'operador' PARA O USUÁRIO LOGADO
+    # =====================
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        initial['operador'] = request.user
+        return initial
+
+    # =====================
+    # TRANSFORMA 'codigo_produto' EM UM SELECT COM TODOS OS PRODUTOS
+    # =====================
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'codigo_produto':
+            from .models import Produto
+            produtos = Produto.objects.all().order_by('codigo')
+            choices = [(p.codigo, f"{p.codigo} – {p.descricao}") for p in produtos]
+            from django import forms
+            field = forms.ChoiceField(
+                choices=[('', '---------')] + choices,
+                label=db_field.verbose_name,
+                required=not db_field.blank,
+                help_text=db_field.help_text,
+            )
+            return field
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    # =====================
+    # ARQUIVO JS PARA AUTO‑PREENCHER A DESCRIÇÃO E DESABILITAR O CAMPO OPERADOR
+    # =====================
+    class Media:
+        js = ('core/js/admin_contagem.js',)
+
+# Torna o campo operador não obrigatório, pois será preenchido pelo save_model
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['operador'].required = False
+        return form
 
 @admin.register(TarefaRecontagem)
 class TarefaRecontagemAdmin(admin.ModelAdmin):
@@ -239,11 +281,9 @@ class ConfiguracaoSistemaAdmin(admin.ModelAdmin):
     list_display = ('versao_minima_app',)
     fields = ('versao_minima_app',)
 
-    
     def has_delete_permission(self, request, obj=None):
         return False
 
-    
     def has_add_permission(self, request):
         if ConfiguracaoSistema.objects.exists():
             return False
