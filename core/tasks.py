@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def executar_backup_automatizado():
     """Função que chama o seu Management Command customizado"""
-    print(f"[{datetime.now()}] Iniciando rotina automática de backup...")
+    print(f"[{datetime.now()}] Iniciando rotina automática de backup do PostgreSQL...")
     try:
         call_command('backup_db')
     except Exception as e:
@@ -25,7 +25,7 @@ def start_scheduler():
         trigger="cron",
         hour=3,
         minute=0,
-        id="backup_diario_sqlite",
+        id="backup_diario_postgres",
         max_instances=1,
         replace_existing=True,
     )

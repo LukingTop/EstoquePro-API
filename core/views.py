@@ -240,9 +240,17 @@ class EnderecoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Endereco.objects.select_related('rua')
+        user = self.request.user
+
+        
+        if not user.is_staff and hasattr(user, 'perfil'):
+            qs = qs.filter(rua__in=user.perfil.ruas_permitidas.all())
+
+        
         rua_codigo = self.request.query_params.get('rua_codigo')
         if rua_codigo:
             qs = qs.filter(rua__codigo=rua_codigo)
+            
         return qs.order_by(
             'rua_num',
             F('predio_num').asc(nulls_last=True),
@@ -250,7 +258,6 @@ class EnderecoViewSet(viewsets.ModelViewSet):
             F('posicao_num').asc(nulls_last=True),
             'codigo',
         )
-
 
 class TarefaRecontagemViewSet(viewsets.ModelViewSet):
     serializer_class = TarefaRecontagemSerializer
