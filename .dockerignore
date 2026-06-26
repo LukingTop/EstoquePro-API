@@ -1,8 +1,35 @@
+# Variáveis de ambiente
+.env
+
+# Backups locais
+backups/
+*.zip
+*.tar.gz
+
+# Cache e compilados do Python
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Ambientes virtuais
 venv/
 .venv/
+env/
+
+# Pastas do Git
 .git/
 .gitignore
+
+# Banco de dados local (SQLite)
 db.sqlite3
+db.sqlite3-journal
+
+# Configurações de IDE e SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Arquivos estáticos e mídia (gerados ou enviados no ambiente de produção)
+media/
+staticfiles/
