@@ -51,3 +51,8 @@ ehthumbs.db
 MANIFEST
 build/
 dist/
+
+# Backups locais
+backups/
+*.zip
+*.tar.gz
