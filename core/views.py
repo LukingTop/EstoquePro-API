@@ -460,6 +460,8 @@ def importar_produtos(request):
             context['msg'] += " | ".join(erros)
 
     return render(request, 'core/importar.html', context)
+
+
 # ============================================================
 # EXPORTAÇÃO COMPLETA
 # ============================================================
@@ -506,6 +508,7 @@ def exportar_contagens(request):
     )
 
     return response
+
 
 # ============================================================
 # EXPORTAÇÃO POR PERÍODO
@@ -631,7 +634,10 @@ class ContagemListView(LiderOrGestorMixin, ListView):
         context['data_filtrada'] = self.request.GET.get('data_filtro', '')
 
         ruas_qs = Rua.objects.all()
-        ruas_list = sorted(ruas_qs, key=lambda r: int(r.codigo) if r.codigo.isdigit() else r.codigo)
+        ruas_list = sorted(
+            ruas_qs,
+            key=lambda r: (r.codigo.isdigit(), int(r.codigo) if r.codigo.isdigit() else 0, r.codigo)
+        )
         context['ruas'] = ruas_list
 
         context['total_pallets'] = self.get_queryset().aggregate(total=Sum('pallets')).get('total') or 0
@@ -820,7 +826,7 @@ def registrar_stage(request):
 def criar_missoes(request):
     ruas = sorted(
         Rua.objects.all(),
-        key=lambda r: int(r.codigo) if r.codigo.isdigit() else r.codigo
+        key=lambda r: (r.codigo.isdigit(), int(r.codigo) if r.codigo.isdigit() else 0, r.codigo)
     )
     contagens = (
         Contagem.objects
