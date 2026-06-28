@@ -38,3 +38,24 @@ class ContagemEditForm(forms.ModelForm):
                 'placeholder': 'Observações opcionais…',
             }),
         }
+
+
+class RecontagemPorRuaIntervaloForm(forms.Form):
+    rua_codigo = forms.CharField(
+        label='Código da Rua',
+        max_length=50,
+        required=True,
+        help_text='Exemplo: "21" para a rua 21.'
+    )
+    endereco_inicio = forms.CharField(
+        label='Endereço Inicial',
+        max_length=6,
+        required=False,
+        help_text='Opcional. Ex: "21001"'
+    )
+    endereco_fim = forms.CharField(
+        label='Endereço Final',
+        max_length=6,
+        required=False,
+        help_text='Opcional. Ex: "21010"'
+    )

@@ -54,6 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'auditlog.middleware.AuditlogMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'core.middleware.SingleSessionMiddleware',
 ]
 
 ROOT_URLCONF = 'setup.urls'
@@ -149,3 +150,5 @@ JAZZMIN_SETTINGS = {
 JAZZMIN_UI_TWEAKS = {
     "theme": "lumen", 
 }
+
+LOGIN_REDIRECT_URL = '/api/painel'  

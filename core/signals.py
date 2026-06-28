@@ -68,7 +68,7 @@ def cache_endereco_ao_deletar_contagem(sender, instance, **kwargs):
 @receiver(user_logged_in)
 def log_login(sender, request, user, **kwargs):
     LogEntry.objects.create(
-        action=LogEntry.Action.CREATE,  #
+        action=LogEntry.Action.CREATE,  
         content_type=ContentType.objects.get_for_model(user),
         object_pk=user.pk,
         object_repr=str(user),
@@ -88,3 +88,14 @@ def log_logout(sender, request, user, **kwargs):
             actor=user,
             changes={'action': 'logout', 'ip': request.META.get('REMOTE_ADDR')},
         )
+        
+@receiver(user_logged_in)
+def update_current_session(sender, request, user, **kwargs):
+    if hasattr(user, 'perfil'):
+        user.perfil.current_session_key = request.session.session_key
+        user.perfil.save()
+        
+@receiver(user_logged_in)
+def clear_concurrent_flag(sender, request, user, **kwargs):
+   
+    request.session.pop('concurrent_logout', None)

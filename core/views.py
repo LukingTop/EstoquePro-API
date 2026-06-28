@@ -32,6 +32,7 @@ from .models import (
     Endereco,
     TarefaRecontagem,
     ConfiguracaoSistema,
+    Avaria
 )
 
 from .serializers import (
@@ -40,6 +41,7 @@ from .serializers import (
     RuaSerializer,
     EnderecoSerializer,
     TarefaRecontagemSerializer,
+    AvariaSerializer
 )
 
 # ============================================================
@@ -86,7 +88,6 @@ def criar_tarefa_recontagem(contagem):
     except Produto.DoesNotExist:
         return None
 
-    
     tarefa_existente = TarefaRecontagem.objects.filter(
         endereco=contagem.endereco,
         produto=produto,
@@ -99,7 +100,6 @@ def criar_tarefa_recontagem(contagem):
     if tarefa_existente:
         return tarefa_existente
 
-    
     hoje = timezone.now().date()
     contagens_do_dia = Contagem.objects.filter(
         endereco=contagem.endereco,
@@ -119,7 +119,6 @@ def criar_tarefa_recontagem(contagem):
         criticidade = TarefaRecontagem.Criticidade.MEDIA
     else:
         criticidade = TarefaRecontagem.Criticidade.BAIXA
-    
 
     return TarefaRecontagem.objects.create(
         endereco=contagem.endereco,
@@ -236,17 +235,16 @@ class RuaViewSet(viewsets.ModelViewSet):
 class EnderecoViewSet(viewsets.ModelViewSet):
     serializer_class = EnderecoSerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [SessionAuthentication, JWTAuthentication]   
     pagination_class = None
 
     def get_queryset(self):
         qs = Endereco.objects.select_related('rua')
         user = self.request.user
 
-        
         if not user.is_staff and hasattr(user, 'perfil'):
             qs = qs.filter(rua__in=user.perfil.ruas_permitidas.all())
 
-        
         rua_codigo = self.request.query_params.get('rua_codigo')
         if rua_codigo:
             qs = qs.filter(rua__codigo=rua_codigo)
@@ -258,6 +256,7 @@ class EnderecoViewSet(viewsets.ModelViewSet):
             F('posicao_num').asc(nulls_last=True),
             'codigo',
         )
+
 
 class TarefaRecontagemViewSet(viewsets.ModelViewSet):
     serializer_class = TarefaRecontagemSerializer
@@ -294,7 +293,6 @@ class TarefaRecontagemViewSet(viewsets.ModelViewSet):
 # ============================================================
 # IMPORTAÇÃO DE PRODUTOS E ENDEREÇOS
 # ============================================================
-
 @csrf_exempt
 @user_passes_test(is_gestor, login_url='/admin/login/')
 def importar_produtos(request):
@@ -303,109 +301,167 @@ def importar_produtos(request):
         arquivos = request.FILES.getlist('file')
         arquivos_sucesso = 0
         erros = []
+
+        COLUNAS_DESEJADAS = ['COD', 'DESCRICAO', 'PALETIZACAO', 'VALORPALETE', 'PAC']
+
         for arquivo in arquivos:
-            print(f"\n--- INICIANDO LEITURA DO ARQUIVO: {arquivo.name} ---")
+            nome_arquivo = str(arquivo.name)
+            print(f"\n--- INICIANDO LEITURA DO ARQUIVO: {nome_arquivo} ---")
             try:
-                xls = pd.ExcelFile(arquivo, engine='openpyxl')
                 enderecos_encontrados = set()
-                lista_df_produtos = []
-                for aba in xls.sheet_names:
-                    df_temp = pd.read_excel(xls, sheet_name=aba)
-                    colunas = [str(c).upper().replace(' ', '').replace('_', '').replace('Ç', 'C')
-                               .replace('Ã', 'A').replace('Á', 'A').replace('É', 'E').replace('Í', 'I')
-                               .replace('Ó', 'O').replace('Ú', 'U') for c in df_temp.columns]
-                    df_temp.columns = colunas
-                    df_temp = df_temp.loc[:, ~df_temp.columns.duplicated()].copy()
-                    colunas = list(df_temp.columns)
-                    if 'ENDERECO' in colunas:
-                        enderecos = df_temp['ENDERECO'].dropna().astype(str)
+                abas_importadas = 0
+
+                if nome_arquivo.lower().endswith('.csv'):
+                    # Lê o conteúdo bruto do arquivo
+                    raw_bytes = arquivo.read()
+                    # Tenta decodificar com várias codificações
+                    codificacoes = ['utf-8', 'latin-1', 'iso-8859-1', 'windows-1252', 'cp1252', 'utf-16']
+                    texto = None
+                    cod_usada = None
+                    for cod in codificacoes:
+                        try:
+                            texto = raw_bytes.decode(cod)
+                            cod_usada = cod
+                            break
+                        except UnicodeDecodeError:
+                            continue
+                    if texto is None:
+                        raise Exception("Não foi possível decodificar o arquivo CSV com as codificações suportadas.")
+
+                    # Usa StringIO para simular um arquivo de texto
+                    from io import StringIO
+                    df = pd.read_csv(
+                        StringIO(texto),
+                        dtype=str,
+                        sep=';',
+                        skip_blank_lines=True,
+                    )
+                    lista_dfs = [('CSV', df)]
+                else:
+                    xls = pd.ExcelFile(arquivo, engine='openpyxl')
+                    lista_dfs = [(aba, pd.read_excel(xls, sheet_name=aba, dtype=str)) for aba in xls.sheet_names]
+
+                for nome_aba, df in lista_dfs:
+                    colunas_originais = [str(c).strip() for c in df.columns]
+                    norm_map = {}
+                    for c in colunas_originais:
+                        norm = c.upper().replace(' ', '').replace('_', '').replace('Ç', 'C') \
+                                 .replace('Ã', 'A').replace('Á', 'A').replace('É', 'E').replace('Í', 'I') \
+                                 .replace('Ó', 'O').replace('Ú', 'U')
+                        norm_map[norm] = c
+
+                    # ---- COLETA DE ENDEREÇOS ----
+                    if 'ENDERECO' in norm_map:
+                        col_end = norm_map['ENDERECO']
+                        enderecos = df[col_end].dropna().astype(str)
                         for endereco in enderecos:
                             endereco = endereco.strip()
-                            if endereco.endswith('.0'): endereco = endereco[:-2]
+                            if endereco.endswith('.0'):
+                                endereco = endereco[:-2]
                             if endereco and endereco.lower() != 'nan':
                                 enderecos_encontrados.add(endereco)
-                    col_codigo = 'CODIGO' if 'CODIGO' in colunas else ('CODPRODUTO' if 'CODPRODUTO' in colunas else ('COD' if 'COD' in colunas else None))
-                    col_desc = 'DESCRICAO' if 'DESCRICAO' in colunas else None
-                    if col_codigo and col_desc:
-                        cols_to_keep = [col_codigo, col_desc]
-                        opcionais = ['PALETIZACAO', 'TIPO', 'VALORPALETE', 'PAC', 'MATERIAL', 'TEXTOBREVEMATERIAL', 'TIPOPALLET']
-                        for op in opcionais:
-                            if op in colunas: cols_to_keep.append(op)
-                        df_filtrado = df_temp[cols_to_keep].copy()
-                        df_filtrado.rename(columns={col_codigo: 'CODIGO_PADRAO', col_desc: 'DESCRICAO_PADRAO'}, inplace=True)
-                        lista_df_produtos.append(df_filtrado)
-                enderecos_ignorados = set()
-                for endereco_codigo in enderecos_encontrados:
-                    if len(endereco_codigo) == 5:
-                        rua_codigo_str = endereco_codigo[0]
-                        predio_str = endereco_codigo[1]
-                        posicao_str = endereco_codigo[2:]
-                    elif len(endereco_codigo) == 6:
-                        rua_codigo_str = endereco_codigo[:2]
-                        predio_str = endereco_codigo[2]
-                        posicao_str = endereco_codigo[3:]
-                    else:
-                        enderecos_ignorados.add(endereco_codigo)
+
+                    # ---- VERIFICA SE TEM AS 5 COLUNAS ----
+                    if not all(col in norm_map for col in COLUNAS_DESEJADAS):
                         continue
+
+                    colunas_orig = [norm_map[col] for col in COLUNAS_DESEJADAS]
+                    df_trab = df[colunas_orig].copy()
+                    df_trab.columns = ['CODIGO_PADRAO', 'DESCRICAO_PADRAO', 'PALETIZACAO', 'VALORPALETE', 'PAC']
+
+                    for _, row in df_trab.iterrows():
+                        codigo = str(row['CODIGO_PADRAO']).strip()
+                        descricao = str(row['DESCRICAO_PADRAO']).strip()
+                        if codigo.endswith('.0'):
+                            codigo = codigo[:-2]
+                        if not codigo or codigo.lower() == 'nan' or not descricao or descricao.lower() == 'nan':
+                            continue
+
+                        defaults = {'descricao': descricao}
+
+                        val = str(row.get('PALETIZACAO', '')).strip()
+                        if val and val.lower() != 'nan':
+                            defaults['palletizacao'] = val
+
+                        val = str(row.get('PAC', '')).strip()
+                        if val and val.lower() != 'nan':
+                            defaults['pac'] = val
+
+                        val_str = str(row.get('VALORPALETE', '')).strip()
+                        if val_str and val_str.lower() != 'nan':
+                            try:
+                                val_str = val_str.replace(',', '.').replace('R$', '').replace(' ', '')
+                                defaults['valor_palete'] = float(val_str)
+                            except ValueError:
+                                pass
+
+                        # Limpa campos que não devem ser preenchidos
+                        defaults['material'] = ''
+                        defaults['texto_breve_material'] = ''
+                        defaults['tipo_pallet'] = ''
+
+                        Produto.objects.update_or_create(codigo=codigo, defaults=defaults)
+
+                    abas_importadas += 1
+
+                # ---- PROCESSAMENTO DOS ENDEREÇOS ----
+                enderecos_ignorados = set()
+                for codigo_original in enderecos_encontrados:
+                    if len(codigo_original) == 5:
+                        codigo_parse = '0' + codigo_original
+                    elif len(codigo_original) == 6:
+                        codigo_parse = codigo_original
+                    else:
+                        enderecos_ignorados.add(codigo_original)
+                        continue
+
+                    rua_codigo_str = codigo_parse[:2]
+                    predio_str     = codigo_parse[2]
+                    andar_str      = codigo_parse[3]
+                    posicao_str    = codigo_parse[4:]
+
                     rua, _ = Rua.objects.get_or_create(codigo=rua_codigo_str)
-                    r_num = int(rua_codigo_str) if rua_codigo_str.isdigit() else None
-                    p_num = int(predio_str) if predio_str.isdigit() else None
-                    pos_num = int(posicao_str) if posicao_str.isdigit() else None
-                    Endereco.objects.get_or_create(codigo=endereco_codigo, defaults={
-                        'rua': rua,
-                        'rua_num': r_num,
-                        'predio_num': p_num,
-                        'andar_num': 0,
-                        'posicao_num': pos_num,
-                    })
+                    r_num   = int(rua_codigo_str) if rua_codigo_str.isdigit() else None
+                    p_num   = int(predio_str)     if predio_str.isdigit() else None
+                    a_num   = int(andar_str)      if andar_str.isdigit() else 0
+                    pos_num = int(posicao_str)    if posicao_str.isdigit() else None
+
+                    Endereco.objects.update_or_create(
+                        codigo=codigo_original,
+                        defaults={
+                            'rua': rua,
+                            'rua_num': r_num,
+                            'predio_num': p_num,
+                            'andar_num': a_num,
+                            'posicao_num': pos_num,
+                        },
+                    )
+
                 if enderecos_ignorados:
                     exemplos = list(enderecos_ignorados)[:3]
-                    erros.append(f"⚠️ Aviso: {len(enderecos_ignorados)} endereço(s) ignorado(s) por formato inválido "
-                                 f"(Exemplos: {', '.join(exemplos)}). O sistema espera 5 ou 6 caracteres.")
-                if lista_df_produtos:
-                    df_produtos = pd.concat(lista_df_produtos, ignore_index=True).drop_duplicates(subset=['CODIGO_PADRAO'])
-                    mapeamento_opcional = {
-                        'PALETIZACAO': 'palletizacao',
-                        'TIPO': 'tipo',
-                        'PAC': 'pac',
-                        'MATERIAL': 'material',
-                        'TEXTOBREVEMATERIAL': 'texto_breve_material',
-                        'TIPOPALLET': 'tipo_pallet',
-                    }
-                    for _, row in df_produtos.iterrows():
-                        codigo = str(row.get('CODIGO_PADRAO', '')).strip()
-                        descricao = str(row.get('DESCRICAO_PADRAO', '')).strip()
-                        if codigo.endswith('.0'): codigo = codigo[:-2]
-                        if codigo and codigo.lower() != 'nan' and descricao and descricao.lower() != 'nan':
-                            defaults = {'descricao': descricao}
-                            for col_ex, col_mod in mapeamento_opcional.items():
-                                if col_ex in row:
-                                    val = str(row[col_ex]).strip()
-                                    if val and val.lower() != 'nan':
-                                        defaults[col_mod] = val
-                            if 'VALORPALETE' in row:
-                                val = str(row['VALORPALETE']).strip()
-                                if val and val.lower() != 'nan':
-                                    try:
-                                        val = val.replace(',', '.').replace('R$', '').replace(' ', '')
-                                        defaults['valor_palete'] = float(val)
-                                    except ValueError:
-                                        pass
-                            Produto.objects.update_or_create(codigo=codigo, defaults=defaults)
-                arquivos_sucesso += 1
+                    erros.append(
+                        f"⚠️ Aviso: {len(enderecos_ignorados)} endereço(s) ignorado(s) por formato inválido "
+                        f"(Exemplos: {', '.join(exemplos)}). O sistema espera 5 ou 6 caracteres."
+                    )
+
+                if abas_importadas > 0:
+                    arquivos_sucesso += 1
+                else:
+                    erros.append(f"ℹ️ Nenhuma aba de produtos encontrada em {nome_arquivo}.")
+
             except Exception as e:
-                erro_msg = f'Erro no arquivo {arquivo.name}: {str(e)}'
+                erro_msg = f'Erro no arquivo {nome_arquivo}: {str(e)}'
                 print(f"\n!!! ERRO FATAL: {erro_msg}")
                 erros.append(erro_msg)
+
         if arquivos_sucesso > 0:
             context['msg'] = f'{arquivos_sucesso} planilha(s) processada(s) com sucesso! '
         if erros:
             context['msg'] += " | ".join(erros)
+
     return render(request, 'core/importar.html', context)
-
-
 # ============================================================
-# EXPORTAÇÃO
+# EXPORTAÇÃO COMPLETA
 # ============================================================
 
 @user_passes_test(is_gestor, login_url='/admin/login/')
@@ -413,7 +469,7 @@ def exportar_contagens(request):
     contagens = (
         Contagem.objects
         .filter(foi_descartada=False)
-        .select_related('operador', 'endereco', 'endereco__rua')
+        .select_related('operador', 'endereco', 'endereco__rua', 'atualizado_por')
         .order_by('-data_hora')
     )
     dados = []
@@ -428,8 +484,12 @@ def exportar_contagens(request):
             'Código Produto': c.codigo_produto,
             'Descrição': c.descricao_produto,
             'Pallets': c.pallets,
+            'Recontagem Solicitada': 'Sim' if c.e_recontagem else 'Não',
+            'Recontado Por': c.operador.username if c.e_recontagem else '-',
             'Observação': c.observacao,
-            'Data e Hora': c.data_hora.strftime('%d/%m/%Y %H:%M:%S'),
+            'Editado': 'Sim' if c.atualizado_por else 'Não',
+            'Editado Por': c.atualizado_por.username if c.atualizado_por else '-',
+            'Data e Hora': timezone.localtime(c.data_hora).strftime('%d/%m/%Y %H:%M:%S'),
         })
     df = pd.DataFrame(dados)
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -437,7 +497,6 @@ def exportar_contagens(request):
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Base Consolidada')
 
-    
     LogEntry.objects.create(
         action=LogEntry.Action.ACCESS,
         content_type=ContentType.objects.get_for_model(Contagem),
@@ -447,7 +506,6 @@ def exportar_contagens(request):
     )
 
     return response
-
 
 # ============================================================
 # EXPORTAÇÃO POR PERÍODO
@@ -461,7 +519,7 @@ def selecionar_periodo_exportacao(request):
         contagens = (
             Contagem.objects
             .filter(data_hora__date__range=[data_inicio, data_fim], foi_descartada=False)
-            .select_related('operador', 'endereco', 'endereco__rua')
+            .select_related('operador', 'endereco', 'endereco__rua', 'atualizado_por')
             .order_by('-data_hora')
         )
         dados = []
@@ -476,8 +534,12 @@ def selecionar_periodo_exportacao(request):
                 'Código Produto': c.codigo_produto,
                 'Descrição': c.descricao_produto,
                 'Pallets': c.pallets,
+                'Recontagem Solicitada': 'Sim' if c.e_recontagem else 'Não',
+                'Recontado Por': c.operador.username if c.e_recontagem else '-',
                 'Observação': c.observacao,
-                'Data e Hora': c.data_hora.strftime('%d/%m/%Y %H:%M:%S'),
+                'Editado': 'Sim' if c.atualizado_por else 'Não',
+                'Editado Por': c.atualizado_por.username if c.atualizado_por else '-',
+                'Data e Hora': timezone.localtime(c.data_hora).strftime('%d/%m/%Y %H:%M:%S'),
             })
         df = pd.DataFrame(dados)
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -485,7 +547,6 @@ def selecionar_periodo_exportacao(request):
         with pd.ExcelWriter(response, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Base Consolidada')
 
-        
         LogEntry.objects.create(
             action=LogEntry.Action.ACCESS,
             content_type=ContentType.objects.get_for_model(Contagem),
@@ -526,12 +587,13 @@ def dashboard(request):
 
 
 # ============================================================
-# PAINEL DE GESTÃO (TELA INICIAL)
+# PAINEL DE GESTÃO 
 # ============================================================
 
 @user_passes_test(is_lider_or_gestor, login_url='/admin/login/')
 def painel_gestao(request):
     return render(request, 'core/painel.html')
+
 
 class ContagemListView(LiderOrGestorMixin, ListView):
     model = Contagem
@@ -542,6 +604,11 @@ class ContagemListView(LiderOrGestorMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().filter(foi_descartada=False).select_related('operador', 'endereco', 'endereco__rua')
+
+        data_filtrada = self.request.GET.get('data_filtro', '').strip()
+        if data_filtrada:
+            qs = qs.filter(data_hora__date=data_filtrada)
+
         q = self.request.GET.get('q', '').strip()
         if q:
             qs = qs.filter(
@@ -550,18 +617,23 @@ class ContagemListView(LiderOrGestorMixin, ListView):
                 Q(codigo_produto__icontains=q) |
                 Q(descricao_produto__icontains=q)
             )
+
         rua_id = self.request.GET.get('rua_id')
         if rua_id:
             qs = qs.filter(endereco__rua_id=rua_id)
+
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['q'] = self.request.GET.get('q', '')
         context['rua_id'] = self.request.GET.get('rua_id', '')
+        context['data_filtrada'] = self.request.GET.get('data_filtro', '')
+
         ruas_qs = Rua.objects.all()
         ruas_list = sorted(ruas_qs, key=lambda r: int(r.codigo) if r.codigo.isdigit() else r.codigo)
         context['ruas'] = ruas_list
+
         context['total_pallets'] = self.get_queryset().aggregate(total=Sum('pallets')).get('total') or 0
         return context
 
@@ -741,74 +813,129 @@ def registrar_stage(request):
 
 
 # ============================================================
-# CRIAÇÃO DE TAREFAS DE RECONTAGEM EM LOTE
+# RECONTAGEM
 # ============================================================
 
 @user_passes_test(is_lider_or_gestor, login_url='/admin/login/')
-def criar_recontagem_lote(request):
+def criar_missoes(request):
+    ruas = sorted(
+        Rua.objects.all(),
+        key=lambda r: int(r.codigo) if r.codigo.isdigit() else r.codigo
+    )
+    contagens = (
+        Contagem.objects
+        .filter(foi_descartada=False)
+        .select_related('endereco', 'operador')
+        .order_by('-data_hora')[:1000]
+    )
+
     if request.method == 'POST':
-        contagem_id = request.POST.get('contagem_id')
-        escopo = request.POST.get('escopo')  
+        if 'contagem_id' in request.POST:
+            contagem_id = request.POST.get('contagem_id')
+            escopo = request.POST.get('escopo', 'unico')
 
-        if not contagem_id:
-            messages.error(request, "Selecione um registro base.")
-            return redirect('criar_recontagem_lote')
+            if not contagem_id:
+                messages.error(request, "Selecione um registro base.")
+                return redirect('criar_missoes')
 
-        try:
-            contagem_base = Contagem.objects.select_related('endereco', 'operador').get(pk=contagem_id)
-        except Contagem.DoesNotExist:
-            messages.error(request, "Registro base não encontrado.")
-            return redirect('criar_recontagem_lote')
+            try:
+                contagem_base = Contagem.objects.select_related('endereco', 'operador').get(pk=contagem_id)
+            except Contagem.DoesNotExist:
+                messages.error(request, "Registro base não encontrado.")
+                return redirect('criar_missoes')
 
-        try:
-            produto = Produto.objects.get(codigo=contagem_base.codigo_produto)
-        except Produto.DoesNotExist:
-            messages.error(request, f"Produto '{contagem_base.codigo_produto}' não encontrado no sistema.")
-            return redirect('criar_recontagem_lote')
+            try:
+                produto = Produto.objects.get(codigo=contagem_base.codigo_produto)
+            except Produto.DoesNotExist:
+                messages.error(request, f"Produto '{contagem_base.codigo_produto}' não encontrado.")
+                return redirect('criar_missoes')
 
-       
-        if escopo == 'todos':
-            enderecos_ids = Contagem.objects.filter(
-                codigo_produto=produto.codigo,
-                foi_descartada=False
-            ).values_list('endereco_id', flat=True).distinct()
-            enderecos_alvo = list(Endereco.objects.filter(id__in=enderecos_ids))
-        else:
-            
-            enderecos_alvo = [contagem_base.endereco]
+            if escopo == 'todos':
+                enderecos_ids = Contagem.objects.filter(
+                    codigo_produto=produto.codigo,
+                    foi_descartada=False
+                ).values_list('endereco_id', flat=True).distinct()
+                enderecos_alvo = list(Endereco.objects.filter(id__in=enderecos_ids))
+            else:
+                enderecos_alvo = [contagem_base.endereco]
 
-        if not enderecos_alvo:
-            messages.warning(request, f"Nenhum endereço encontrado contendo o produto {produto.codigo}.")
-            return redirect('criar_recontagem_lote')
+            if not enderecos_alvo:
+                messages.warning(request, f"Nenhum endereço encontrado para o produto {produto.codigo}.")
+                return redirect('criar_missoes')
 
-        tarefas_criadas = 0
-        for endereco in enderecos_alvo:
-            tarefa_existe = TarefaRecontagem.objects.filter(
-                endereco=endereco,
-                produto=produto,
-                status__in=['PENDENTE', 'EM_ANDAMENTO'],
-            ).exists()
-            if not tarefa_existe:
-                TarefaRecontagem.objects.create(
+            tarefas_criadas = 0
+            for endereco in enderecos_alvo:
+                tarefa_existe = TarefaRecontagem.objects.filter(
                     endereco=endereco,
                     produto=produto,
-                    status='PENDENTE',
-                    observacao=f"Missão gerada a partir da contagem #{contagem_base.id}."
-                )
-                tarefas_criadas += 1
+                    status__in=['PENDENTE', 'EM_ANDAMENTO'],
+                ).exists()
+                if not tarefa_existe:
+                    TarefaRecontagem.objects.create(
+                        endereco=endereco,
+                        produto=produto,
+                        status='PENDENTE',
+                        observacao=f"Missão gerada a partir da contagem #{contagem_base.id}."
+                    )
+                    tarefas_criadas += 1
 
-        if tarefas_criadas > 0:
-            messages.success(request, f"Sucesso! {tarefas_criadas} missões criadas para o produto {produto.codigo}.")
-        else:
-            messages.info(request, f"As missões para o produto {produto.codigo} já estavam ativas nesses endereços.")
+            if tarefas_criadas:
+                messages.success(request, f"{tarefas_criadas} missões criadas para o produto {produto.codigo}.")
+            else:
+                messages.info(request, f"As missões para o produto {produto.codigo} já estão ativas.")
+            return redirect('criar_missoes')
 
-        return redirect('criar_recontagem_lote')
+        if 'rua_codigo' in request.POST:
+            rua_codigo = request.POST.get('rua_codigo', '').strip()
+            end_inicio = request.POST.get('endereco_inicio', '').strip()
+            end_fim = request.POST.get('endereco_fim', '').strip()
 
-    
-    contagens = Contagem.objects.filter(foi_descartada=False) \
-        .select_related('endereco', 'operador') \
-        .order_by('-data_hora')[:1000]  
-    return render(request, 'core/recontagem_produto.html', {'contagens': contagens})
+            if not rua_codigo:
+                messages.error(request, 'Informe o código da rua.')
+                return redirect('criar_missoes')
+
+            contagens_qs = Contagem.objects.filter(
+                foi_descartada=False,
+                endereco__rua__codigo=rua_codigo
+            )
+            if end_inicio and end_fim:
+                contagens_qs = contagens_qs.filter(endereco__codigo__range=[end_inicio, end_fim])
+            elif end_inicio:
+                contagens_qs = contagens_qs.filter(endereco__codigo__gte=end_inicio)
+            elif end_fim:
+                contagens_qs = contagens_qs.filter(endereco__codigo__lte=end_fim)
+
+            pares = contagens_qs.values('endereco_id', 'codigo_produto').distinct()
+            criadas = 0
+            for par in pares:
+                try:
+                    produto = Produto.objects.get(codigo=par['codigo_produto'])
+                except Produto.DoesNotExist:
+                    continue
+                endereco = Endereco.objects.get(pk=par['endereco_id'])
+                existe = TarefaRecontagem.objects.filter(
+                    endereco=endereco,
+                    produto=produto,
+                    status__in=[TarefaRecontagem.Status.PENDENTE, TarefaRecontagem.Status.EM_ANDAMENTO]
+                ).exists()
+                if not existe:
+                    TarefaRecontagem.objects.create(
+                        endereco=endereco,
+                        produto=produto,
+                        status=TarefaRecontagem.Status.PENDENTE,
+                        observacao=f'Criada em lote via painel (Rua {rua_codigo})'
+                    )
+                    criadas += 1
+            if criadas:
+                messages.success(request, f'{criadas} missões de recontagem criadas para a rua {rua_codigo}.')
+            else:
+                messages.info(request, 'Nenhuma missão nova foi criada.')
+            return redirect('criar_missoes')
+
+    return render(request, 'core/criar_missoes.html', {
+        'ruas': ruas,
+        'contagens': contagens,
+    })
 
 
 # ============================================================
@@ -857,6 +984,7 @@ def produtividade_diaria(request):
         'missoes_concluidas': missoes_concluidas,
     })
 
+
 # ============================================================
 # PUSH TOKEN
 # ============================================================
@@ -882,3 +1010,88 @@ def atualizar_push_token(request):
 def versao_minima_app(request):
     config = ConfiguracaoSistema.load()
     return Response({'versao_minima': config.versao_minima_app})
+
+
+# ============================================================
+# AVARIA
+# ============================================================
+
+class AvariaViewSet(viewsets.ModelViewSet):
+    queryset = Avaria.objects.all()
+    serializer_class = AvariaSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(operador=self.request.user)
+
+
+@user_passes_test(is_lider_or_gestor, login_url='/admin/login/')
+def conversor_avaria_web(request):
+    produtos = Produto.objects.all().order_by('codigo')
+    return render(request, 'core/conversor_avaria.html', {'produtos': produtos})
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def conversao_avaria(request):
+    codigo = request.query_params.get('codigo')
+    quantidade = request.query_params.get('quantidade')
+    tipo_unidade = request.query_params.get('tipo_unidade')
+
+    try:
+        produto = Produto.objects.get(codigo=codigo)
+    except Produto.DoesNotExist:
+        return Response({'erro': 'Produto não encontrado'}, status=404)
+
+    try:
+        qtd = float(quantidade)
+    except (TypeError, ValueError):
+        return Response({'erro': 'Quantidade inválida'}, status=400)
+
+    packs_por_pallet = produto.packs_por_pallet
+    unidades_por_pack = produto.unidades_por_pack
+
+    resultado = {
+        'produto': produto.codigo,
+        'descricao': produto.descricao,
+        'quantidade_original': qtd,
+        'tipo_original': tipo_unidade,
+    }
+
+    if tipo_unidade == 'pallet':
+        if packs_por_pallet and unidades_por_pack:
+            total_unidades = qtd * packs_por_pallet * unidades_por_pack
+        elif unidades_por_pack:
+            return Response({'erro': 'Faltam dados de conversão (packs por pallet não definido)'}, 400)
+        else:
+            return Response({'erro': 'Produto sem dados de conversão'}, 400)
+        resultado['total_unidades'] = total_unidades
+        resultado['total_packs'] = qtd * packs_por_pallet
+        resultado['total_pallets'] = qtd
+    elif tipo_unidade == 'pack':
+        if unidades_por_pack:
+            total_unidades = qtd * unidades_por_pack
+        else:
+            return Response({'erro': 'Produto sem unidades por pack'}, 400)
+        resultado['total_unidades'] = total_unidades
+        if packs_por_pallet:
+            resultado['total_pallets'] = qtd / packs_por_pallet
+        resultado['total_packs'] = qtd
+    elif tipo_unidade == 'unidade':
+        resultado['total_unidades'] = qtd
+        if unidades_por_pack:
+            resultado['total_packs'] = qtd / unidades_por_pack
+        if packs_por_pallet and unidades_por_pack:
+            resultado['total_pallets'] = qtd / (packs_por_pallet * unidades_por_pack)
+    else:
+        return Response({'erro': 'Tipo de unidade inválido'}, 400)
+
+    return Response(resultado)
+
+
+# ============================================================
+# AVISO DE SESSÃO CONCORRENTE
+# ============================================================
+
+def aviso_sessao_concorrente(request):
+    return render(request, 'core/aviso_concorrente.html')

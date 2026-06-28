@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+    <p style="margin-bottom: 15px;">
+        Selecione uma rua e, opcionalmente, um intervalo de endereços para gerar missões de recontagem em massa.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <fieldset class="module aligned">
+            {% for field in form %}
+            <div class="form-row">
+                <div class="field-box">
+                    {{ field.errors }}
+                    <label for="{{ field.id_for_label }}">{{ field.label }}:</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <p class="help">{{ field.help_text|safe }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </fieldset>
+        <div class="submit-row">
+            <input type="submit" value="Gerar Missões" class="default" name="_save">
+        </div>
+    </form>
+</div>
+{% endblock %}

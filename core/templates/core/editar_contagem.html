@@ -4,123 +4,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Contagem #{{ object.pk }}</title>
+    <title>Editar Contagem #{{ object.pk }} - EstoquePro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Força os inputs nativos gerados pelo form do Django a usarem o estilo do Tailwind */
+        form input[type="text"], 
+        form input[type="number"], 
+        form textarea, 
+        form select {
+            width: 100%;
+            padding: 0.625rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: #334155;
+            background-color: white;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            outline: none;
+            transition: all 0.2s;
+        }
+        form input:focus, 
+        form textarea:focus, 
+        form select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800 p-4 sm:p-6">
 
-    <!-- ── Cabeçalho ─────────────────────────────────────────────────────── -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div class="max-w-3xl mx-auto px-6 py-4 flex justify-between items-center">
+    <div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-100">
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-5 mb-6 gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">Editar Contagem</h1>
-                <p class="text-sm text-slate-400 mt-0.5">
-                    Registro #{{ object.pk }} &middot; {{ object.data_hora|date:"d/m/Y H:i" }}
+                <h1 class="text-3xl font-bold text-slate-800">Editar Contagem</h1>
+                <p class="text-sm text-slate-500 mt-1">
+                    Registro <strong class="text-slate-700">#{{ object.pk }}</strong> &middot; Realizado em {{ object.data_hora|date:"d/m/Y H:i" }}
                 </p>
             </div>
-            <a href="{% url 'lista_contagens' %}"
-               class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
-                ← Voltar
+            <a href="{% url 'lista_contagens' %}" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition font-medium whitespace-nowrap text-sm text-center flex items-center justify-center shadow-sm">
+                ← Voltar à Lista
             </a>
         </div>
-    </header>
 
-    <main class="max-w-3xl mx-auto px-6 py-8 space-y-6">
-
-        <!-- ── Informações somente leitura ──────────────────────────────── -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">
-                Informações do Registro (não editáveis)
+        <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 mb-8 shadow-sm">
+            <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
+                Informações do Registro (Imutáveis)
             </h2>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div>
-                    <p class="text-xs text-slate-400 font-medium mb-1">Operador</p>
-                    <p class="font-semibold text-slate-800">{{ object.operador.username }}</p>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Operador</p>
+                    <p class="font-semibold text-slate-800 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm inline-block">@{{ object.operador.username }}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-slate-400 font-medium mb-1">Endereço</p>
-                    <p class="font-bold text-blue-600 text-lg">{{ object.endereco.codigo }}</p>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Endereço</p>
+                    <p class="font-bold text-blue-600 text-lg bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm inline-block">{{ object.endereco.codigo }}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-slate-400 font-medium mb-1">Data / Hora</p>
-                    <p class="font-semibold text-slate-800">{{ object.data_hora|date:"d/m/Y H:i" }}</p>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Data e Hora</p>
+                    <p class="font-semibold text-slate-700 mt-1.5">{{ object.data_hora|date:"d/m/Y H:i" }}</p>
                 </div>
-                <div class="col-span-2 sm:col-span-3">
-                    <p class="text-xs text-slate-400 font-medium mb-1">Descrição do Produto</p>
+                <div class="sm:col-span-3 border-t border-slate-200 pt-3 mt-1">
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Descrição do Produto Base</p>
                     <p class="font-semibold text-slate-700">{{ object.descricao_produto }}</p>
                 </div>
             </div>
         </div>
 
-        <!-- ── Formulário de edição ──────────────────────────────────────── -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">
+        <div>
+            <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
                 Campos Editáveis
             </h2>
 
-            <form method="POST" novalidate>
+            <form method="POST" novalidate class="space-y-5">
                 {% csrf_token %}
 
-                <div class="space-y-5">
-
-                    <!-- Código do Produto -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                        <label for="{{ form.codigo_produto.id_for_label }}"
-                               class="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label for="{{ form.codigo_produto.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">
                             {{ form.codigo_produto.label }}
                         </label>
                         {{ form.codigo_produto }}
                         {% if form.codigo_produto.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.codigo_produto.errors.0 }}</p>
+                            <p class="text-xs font-semibold text-red-500 mt-1">{{ form.codigo_produto.errors.0 }}</p>
                         {% endif %}
                     </div>
 
-                    <!-- Pallets -->
                     <div>
-                        <label for="{{ form.pallets.id_for_label }}"
-                               class="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label for="{{ form.pallets.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">
                             {{ form.pallets.label }}
                         </label>
                         {{ form.pallets }}
                         {% if form.pallets.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.pallets.errors.0 }}</p>
+                            <p class="text-xs font-semibold text-red-500 mt-1">{{ form.pallets.errors.0 }}</p>
                         {% endif %}
                     </div>
-
-                    <!-- Observação -->
-                    <div>
-                        <label for="{{ form.observacao.id_for_label }}"
-                               class="block text-sm font-semibold text-slate-700 mb-1.5">
-                            {{ form.observacao.label }}
-                            <span class="text-slate-400 font-normal">(opcional)</span>
-                        </label>
-                        {{ form.observacao }}
-                        {% if form.observacao.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.observacao.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-
                 </div>
 
-                <!-- Botões -->
-                <div class="flex gap-3 mt-8">
-                    <button type="submit"
-                            class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-sm">
-                        Salvar Alterações
-                    </button>
-                    <a href="{% url 'lista_contagens' %}"
-                       class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm text-center hover:bg-slate-200 transition">
+                <div>
+                    <label for="{{ form.observacao.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                        {{ form.observacao.label }}
+                        <span class="text-slate-400 font-normal ml-1">(opcional)</span>
+                    </label>
+                    {{ form.observacao }}
+                    {% if form.observacao.errors %}
+                        <p class="text-xs font-semibold text-red-500 mt-1">{{ form.observacao.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-100">
+                    <a href="{% url 'lista_contagens' %}" class="w-full sm:w-1/3 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm text-center hover:bg-slate-300 transition shadow-sm">
                         Cancelar
                     </a>
+                    <button type="submit" class="w-full sm:w-2/3 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-md">
+                        Salvar Alterações
+                    </button>
                 </div>
             </form>
         </div>
 
-        <!-- ── Histórico de edições ──────────────────────────────────────── -->
         {% if object.historico_edicoes %}
-        <div class="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm">
-            <h2 class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-5">
-                🕐 Histórico de Edições
+        <div class="mt-10 bg-amber-50/50 rounded-2xl p-6 border border-amber-200 shadow-sm">
+            <h2 class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-5 flex items-center gap-2">
+                <span>🕐</span> Histórico de Edições Deste Registro
             </h2>
             <div id="historico-container" class="space-y-3"></div>
         </div>
@@ -142,41 +148,40 @@
                 };
 
                 // Exibe do mais recente para o mais antigo
-                [...historico].reverse().forEach(function (entry, index) {
+                [...historico].reverse().forEach(function (entry) {
                     const camposHtml = (entry.campos_alterados || []).map(function (campo) {
                         const label    = nomesCampos[campo] || campo;
                         const anterior = (entry.valores_anteriores || {})[campo] ?? '—';
                         return (
                             '<span class="text-slate-600">' +
-                                '<strong>' + label + '</strong>: ' +
-                                '<span class="line-through text-slate-400">' + anterior + '</span>' +
+                                '<strong class="font-bold">' + label + '</strong> era ' +
+                                '<span class="line-through text-red-400 font-medium ml-1">' + anterior + '</span>' +
                             '</span>'
                         );
-                    }).join(' &nbsp;·&nbsp; ');
+                    }).join(' <span class="text-amber-300 mx-2">|</span> ');
 
                     const div = document.createElement('div');
-                    div.className = 'flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100';
+                    div.className = 'flex items-start gap-4 p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:shadow-md transition-shadow';
                     div.innerHTML =
-                        '<div class="mt-1.5 w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0"></div>' +
+                        '<div class="mt-1.5 w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0 shadow-sm ring-2 ring-amber-100"></div>' +
                         '<div class="flex-1 min-w-0">' +
-                            '<p class="text-sm font-semibold text-slate-700">' +
+                            '<p class="text-sm font-bold text-slate-700">' +
                                 entry.usuario +
-                                '<span class="text-slate-400 font-normal"> em ' + entry.data + '</span>' +
+                                '<span class="text-slate-400 font-medium ml-2 text-xs">em ' + entry.data + '</span>' +
                             '</p>' +
-                            '<p class="text-xs text-slate-500 mt-1">Alterou: ' + camposHtml + '</p>' +
+                            '<p class="text-sm text-slate-500 mt-1.5">Alterou: ' + camposHtml + '</p>' +
                         '</div>';
                     container.appendChild(div);
                 });
 
                 if (historico.length === 0) {
-                    container.innerHTML =
-                        '<p class="text-sm text-slate-400">Nenhuma edição registrada.</p>';
+                    container.innerHTML = '<p class="text-sm text-slate-400 italic">Nenhuma edição registrada com sucesso.</p>';
                 }
             })();
         </script>
         {% endif %}
 
-    </main>
+    </div>
 
 </body>
 </html>

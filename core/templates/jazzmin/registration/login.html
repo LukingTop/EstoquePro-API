@@ -1,0 +1,28 @@
+{% extends "admin/login.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .concurrent-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    {% if request.GET.reason == 'concurrent' %}
+        <div class="concurrent-warning">
+            ⚠️ Sua conta foi acessada em outro dispositivo.<br>
+            Por segurança, você foi desconectado.
+        </div>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}

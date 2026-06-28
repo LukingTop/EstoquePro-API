@@ -1,5 +1,4 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -8,60 +7,148 @@
     <title>Painel de Gestão - EstoquePro</title>
     <link rel="icon" type="image/png" href="{% static 'core/favicon.png' %}">
     <link rel="shortcut icon" href="{% static 'core/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800">
 
-    <div class="header center-layout">
-        <h1>Painel de Gestão</h1>
-        <p>Selecione a área que deseja acessar</p>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-3">Painel de Gestão</h1>
+            <p class="text-lg text-slate-500">Selecione a área que deseja acessar no EstoquePro</p>
+            
+            <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-sm font-medium shadow-sm">
+                <span>👤</span>
+                Logado como: <strong class="font-bold">{{ request.user.username }}</strong>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <a href="{% url 'dashboard' %}" class="block p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-blue-300 transition-all duration-200 group">
+                <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-blue-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                    📊
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Dashboard</h2>
+                <p class="text-sm text-slate-500 leading-relaxed">Acompanhe a produtividade dos operadores e o progresso das contagens diárias.</p>
+            </a>
+
+            <a href="{% url 'lista_contagens' %}" class="block p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-orange-300 transition-all duration-200 group">
+                <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-orange-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                    📋
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Gestão de Contagens</h2>
+                <p class="text-sm text-slate-500 leading-relaxed">Edite contagens, visualize histórico de edições e gerencie registros do estoque.</p>
+            </a>
+
+            <a href="{% url 'importar_produtos' %}" class="block p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-purple-300 transition-all duration-200 group">
+                <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-purple-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                    📤
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Importar Planilhas</h2>
+                <p class="text-sm text-slate-500 leading-relaxed">Importe a base de dados de produtos, ruas e posições a partir de planilhas locais.</p>
+            </a>
+
+            <a href="{% url 'selecionar_periodo_exportacao' %}" class="block p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-emerald-300 transition-all duration-200 group">
+                <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-emerald-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                    📥
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Exportar Relatório</h2>
+                <p class="text-sm text-slate-500 leading-relaxed">Escolha um período e gere um arquivo Excel apenas com as contagens desejadas.</p>
+            </a>
+
+            <a href="/admin/" class="block p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-slate-400 transition-all duration-200 group">
+                <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-slate-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                    ⚙️
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Painel Admin</h2>
+                <p class="text-sm text-slate-500 leading-relaxed">Gerencie usuários, permissões e visualize o banco de dados bruto do sistema.</p>
+            </a>
+
+            <a href="{% url 'resolucao_conflitos' %}" class="block p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-rose-300 transition-all duration-200 group">
+                <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-rose-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                    ⚔️
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Tratar Conflitos</h2>
+                <p class="text-sm text-slate-500 leading-relaxed">Resolva contagens duplicadas feitas por operadores diferentes offline.</p>
+            </a>
+
+            <a href="{% url 'criar_missoes' %}" class="block p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-amber-300 transition-all duration-200 group">
+                <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-amber-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                    🔄
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Missões de Recontagem</h2>
+                <p class="text-sm text-slate-500 leading-relaxed">Gere missões de recontagem por produto ou por rua/intervalo de endereços.</p>
+            </a>
+
+            <a href="{% url 'conversor_avaria_web' %}" class="block p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-indigo-300 transition-all duration-200 group">
+                <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-indigo-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                    🔧
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2">Conversor de Avaria</h2>
+                <p class="text-sm text-slate-500 leading-relaxed">Converta quantidades entre pallets, packs e unidades para registro de avarias.</p>
+            </a>
+
+            <form action="{% url 'logout' %}" method="POST" class="h-full">
+                {% csrf_token %}
+                <button type="submit" class="w-full h-full text-left p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-red-300 transition-all duration-200 group focus:outline-none">
+                    <div class="w-14 h-14 flex items-center justify-center rounded-xl bg-red-100 text-2xl mb-4 group-hover:scale-110 transition-transform">
+                        🚪
+                    </div>
+                    <h2 class="text-xl font-bold text-slate-800 mb-2 group-hover:text-red-600 transition-colors">Sair</h2>
+                    <p class="text-sm text-slate-500 leading-relaxed">Encerre sua sessão de forma segura e volte para a tela de login inicial.</p>
+                </button>
+            </form>
+
+        </div>
     </div>
 
-    <div class="grid-container">
+    <script>
+        const TEMPO_INATIVIDADE = 30 * 60 * 1000; // 30 minutos
+        let timeout;
 
-        <a href="{% url 'dashboard' %}" class="menu-card">
-            <div class="icon-wrapper bg-blue">📊</div>
-            <h2>Dashboard</h2>
-            <p>Acompanhe a produtividade dos operadores e o progresso das contagens diárias.</p>
-        </a>
+        function resetarTimer() {
+            clearTimeout(timeout);
+            timeout = setTimeout(logout, TEMPO_INATIVIDADE);
+        }
 
-        <a href="{% url 'lista_contagens' %}" class="menu-card">
-            <div class="icon-wrapper bg-orange">📋</div>
-            <h2>Gestão de Contagens</h2>
-            <p>Edite contagens, visualize histórico de edições e gerencie registros do estoque.</p>
-        </a>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
 
-        <a href="{% url 'importar_produtos' %}" class="menu-card">
-            <div class="icon-wrapper bg-purple">📤</div>
-            <h2>Importar Planilhas</h2>
-            <p>Importe a base de dados de produtos, ruas e posições a partir de planilhas locais.</p>
-        </a>
+        function logout() {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = "{% url 'logout' %}";
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrfmiddlewaretoken';
+            csrf.value = getCookie('csrftoken');
+            form.appendChild(csrf);
+            document.body.appendChild(form);
+            form.submit();
+        }
 
-        <a href="{% url 'selecionar_periodo_exportacao' %}" class="menu-card">
-            <div class="icon-wrapper bg-green">📥</div>
-            <h2>Exportar Relatório</h2>
-            <p>Escolha um período e gere um arquivo Excel apenas com as contagens desejadas.</p>
-        </a>
+        // Inicia o timer assim que a página carregar
+        window.onload = resetarTimer;
 
-        <a href="/admin/" class="menu-card">
-            <div class="icon-wrapper bg-slate">⚙️</div>
-            <h2>Painel Admin</h2>
-            <p>Gerencie usuários, permissões e visualize o banco de dados bruto do sistema.</p>
-        </a>
-
-        <a href="{% url 'resolucao_conflitos' %}" class="menu-card relative">
-            <div class="icon-wrapper bg-rose">⚔️</div>
-            <h2>Tratar Conflitos</h2>
-            <p>Resolva contagens duplicadas feitas por operadores diferentes offline.</p>
-        </a>
-
-        <a href="{% url 'criar_recontagem_lote' %}" class="menu-card">
-            <div class="icon-wrapper" style="background-color: #fef08a;">🔍</div>
-            <h2>Auditoria de Produto</h2>
-            <p>Dispare tarefas de recontagem em todos os endereços de um produto específico.</p>
-        </a>
-
-    </div> 
+        // Reseta o timer em qualquer interação do usuário
+        document.onmousemove = resetarTimer;
+        document.onkeypress = resetarTimer;
+        document.onclick = resetarTimer;
+        document.onscroll = resetarTimer;
+    </script>
 
 </body>
-</html>
+</html> 

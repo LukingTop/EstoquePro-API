@@ -4,7 +4,8 @@ from .models import (
     Produto,
     Rua,
     Endereco,
-    TarefaRecontagem   
+    TarefaRecontagem,
+    Avaria  
 )
 
 
@@ -69,4 +70,9 @@ class TarefaRecontagemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TarefaRecontagem
+        fields = '__all__'
+        
+class AvariaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Avaria
         fields = '__all__'

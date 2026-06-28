@@ -1,0 +1,11 @@
+{% load i18n %}
+<h3>{% blocktranslate with filter_title=title %}By {{ filter_title }}{% endblocktranslate %}</h3>
+<ul>
+    <li>
+        <form method="GET" action="">
+            <input type="date" name="{{ spec.parameter_name }}" value="{{ spec.value|default_if_none:'' }}"
+                   style="width: 100%; padding: 5px; box-sizing: border-box;"
+                   onchange="this.form.submit();" />
+        </form>
+    </li>
+</ul>

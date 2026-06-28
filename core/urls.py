@@ -36,6 +36,8 @@ router.register(
     basename='tarefas-recontagem'
 )
 
+router.register(r'avarias', views.AvariaViewSet, basename='avaria')
+
 
 urlpatterns = [
     # 1. Redireciona quem acessar a raiz exata (/) para o painel de gestão
@@ -100,7 +102,7 @@ urlpatterns = [
     
     path('operador/atualizar-token/', views.atualizar_push_token, name='atualizar_push_token'),
     
-    path('recontagem-lote/', views.criar_recontagem_lote, name='criar_recontagem_lote'),
+    path('criar-missoes/', views.criar_missoes, name='criar_missoes'),
     
     path('contagens-stage/', views.registrar_stage, name='registrar_stage'),
 
@@ -111,6 +113,14 @@ urlpatterns = [
     path('conflitos/resolver/<int:contagem_id>/', views.resolver_conflito, name='resolver_conflito'),
     
     path('operador/produtividade-diaria/', views.produtividade_diaria, name='produtividade_diaria'),
+    
+    # API de conversão (usada pelo JavaScript do conversor)
+    path('conversao-avaria/', views.conversao_avaria, name='conversao_avaria'),
+
+    # Página HTML do conversor (acessada pelo painel)
+    path('conversor-avaria/', views.conversor_avaria_web, name='conversor_avaria_web'),
+    
+    path('sessao-concorrente/', views.aviso_sessao_concorrente, name='aviso_concorrente'),
 
     path(
         'dashboard/',

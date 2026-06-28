@@ -4,48 +4,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Operacional - Sistema de Contagem</title>
+    <title>Dashboard Operacional - EstoquePro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
 </head>
-<body>
-    <div class="header">
-        <div>
-            <h1>Dashboard Operacional</h1>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 5px;">
-                ⏱ <span id="contador">Atualizando em 60s</span>
-            </p>
-        </div>
-        <div class="nav-buttons">
-            <a href="{% url 'painel_gestao' %}" class="btn btn-secondary">Voltar ao Painel</a>
-            <a href="/admin/" class="btn btn-secondary">Ir ao Admin</a>
-            <a href="{% url 'importar_produtos' %}" class="btn">Importar Dados</a>
-            <a href="{% url 'exportar_contagens' %}" class="btn btn-success">Exportar CSV</a>
-        </div>
-    </div>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800 p-4 sm:p-6">
 
-    <div class="container">
-        <div class="cards">
-            <div class="card card-stat">
-                <h3>Total de Pallets</h3>
-                <p>{{ total_pallets }}</p>
+    <div class="max-w-7xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-100">
+
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between border-b border-slate-200 pb-5 mb-8 gap-6">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-3xl font-bold text-slate-800">Dashboard Operacional</h1>
+                    
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Tempo para recarregar a página">
+                        ⏱ <span id="contador">60s</span>
+                    </span>
+                </div>
+                <p class="text-sm text-slate-500 mt-1">Acompanhe a produtividade e o volume de registros em tempo real.</p>
             </div>
-            <div class="card card-stat">
-                <h3>Contagens Realizadas</h3>
-                <p>{{ total_contagens }}</p>
+            
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'importar_produtos' %}" class="bg-purple-100 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-200 transition font-semibold text-sm flex items-center shadow-sm">
+                    📤 Importar Dados
+                </a>
+                <a href="{% url 'exportar_contagens' %}" class="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-200 transition font-semibold text-sm flex items-center shadow-sm">
+                    📥 Exportar CSV
+                </a>
+                <a href="/admin/" class="bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition font-semibold text-sm flex items-center shadow-sm">
+                    ⚙️ Admin
+                </a>
+                <a href="{% url 'painel_gestao' %}" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition font-semibold text-sm flex items-center shadow-sm">
+                    Voltar ao Painel
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-center">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total de Pallets Contados</h3>
+                <p class="text-5xl font-black text-blue-600 mt-2">{{ total_pallets }}</p>
+            </div>
+            
+            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-center">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Contagens Realizadas</h3>
+                <p class="text-5xl font-black text-emerald-600 mt-2">{{ total_contagens }}</p>
             </div>
         </div>
         
-        <div class="charts">
-            <div class="card">
-                <h3 class="chart-title">Produtividade por Operador (Pallets)</h3>
-                <canvas id="produtividadeChart"></canvas>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <h3 class="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wide">Produtividade por Operador (Pallets)</h3>
+                <div class="relative w-full h-80">
+                    <canvas id="produtividadeChart"></canvas>
+                </div>
             </div>
-            <div class="card">
-                <h3 class="chart-title">Volume de Contagens (Diário)</h3>
-                <canvas id="diarioChart"></canvas>
+            
+            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <h3 class="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wide">Volume de Contagens (Diário)</h3>
+                <div class="relative w-full h-80">
+                    <canvas id="diarioChart"></canvas>
+                </div>
             </div>
         </div>
+
     </div>
 
     <script>
@@ -56,17 +78,18 @@
         setInterval(() => {
             tempoRestante -= 1;
             if (tempoRestante <= 0) {
-                contadorElemento.innerText = "Atualizando os dados...";
+                contadorElemento.innerText = "Atualizando...";
                 window.location.reload();
             } else {
-                contadorElemento.innerText = `Atualizando em ${tempoRestante}s`;
+                contadorElemento.innerText = `${tempoRestante}s`;
             }
         }, 1000);
 
         // --- Configuração dos Gráficos ---
-        Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-        Chart.defaults.color = '#64748b';
+        Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
+        Chart.defaults.color = '#64748b'; 
 
+        // Gráfico de Produtividade (Barras)
         const ctxProd = document.getElementById('produtividadeChart').getContext('2d');
         new Chart(ctxProd, {
             type: 'bar',
@@ -75,18 +98,42 @@
                 datasets: [{
                     label: 'Pallets Contados',
                     data: [{% for p in produtividade %}{{ p.total }},{% endfor %}],
-                    backgroundColor: '#2563eb',
+                    backgroundColor: '#3b82f6', 
+                    hoverBackgroundColor: '#2563eb', 
                     borderRadius: 6,
                     barPercentage: 0.6
                 }]
             },
             options: { 
-                responsive: true, 
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { borderDash: [4, 4] } } }
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 14, weight: 'bold' },
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: false
+                    }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [4, 4], color: '#f1f5f9' },
+                        border: { display: false }
+                    },
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { font: { weight: '600' }, color: '#475569' }
+                    }
+                }
             }
         });
 
+        // Gráfico Volume Diário (Linha)
         const ctxDia = document.getElementById('diarioChart').getContext('2d');
         new Chart(ctxDia, {
             type: 'line',
@@ -95,19 +142,44 @@
                 datasets: [{
                     label: 'Registros',
                     data: [{% for d in diario %}{{ d.total }},{% endfor %}],
-                    borderColor: '#16a34a',
-                    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                    borderColor: '#10b981', 
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     borderWidth: 3,
                     fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: '#16a34a',
-                    pointRadius: 4
+                    tension: 0.4,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
                 }]
             },
             options: { 
-                responsive: true, 
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { borderDash: [4, 4] } } }
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 14, weight: 'bold' },
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: false
+                    }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [4, 4], color: '#f1f5f9' },
+                        border: { display: false }
+                    },
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { font: { weight: '600' }, color: '#475569' }
+                    }
+                }
             }
         });
     </script>

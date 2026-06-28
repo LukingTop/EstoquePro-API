@@ -4,43 +4,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Contagem - Gestão</title>
-    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+    <title>Importar Planilhas - EstoquePro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800 p-6">
 
-    <div class="header center-card" style="max-width:500px; margin-bottom:25px; display:flex; justify-content:space-between; align-items:center;">
-        <h1 style="margin:0; font-size:24px;">Importar</h1>
-        <div class="nav-buttons">
-            <a href="{% url 'painel_gestao' %}" class="btn-nav">Painel</a>
-            <a href="{% url 'dashboard' %}" class="btn-nav btn-nav-blue">Dashboard</a>
-        </div>
-    </div>
+    <div class="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg mt-4">
 
-    <div class="card center-card">
-        <h2>Atualizar Base de Dados</h2>
-        <p class="subtitle">Faça o upload dos arquivos <b>(.csv ou .xlsx)</b> para sincronizar o cadastro de Produtos, Endereços e Ruas.</p>
-
-        <form method="POST" enctype="multipart/form-data" id="uploadForm">
-            {% csrf_token %}
-
-            <div class="file-drop-area" id="dropArea">
-                <div class="file-icon">📄</div>
-                <span class="file-msg" id="fileMsg">Clique ou arraste os arquivos aqui</span>
-                <span class="file-hint">Formatos suportados: .csv, .xlsx</span>
-                <input class="file-input" type="file" name="file" id="fileInput"
-                    accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-                    multiple required>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-5 mb-6 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800">Importar Planilhas</h1>
+                <p class="text-sm text-slate-500 mt-1">Sincronize o cadastro de Produtos, Endereços e Ruas.</p>
             </div>
-
-            <button type="submit" class="btn-submit" id="submitBtn">Processar Planilhas</button>
-        </form>
+            <div class="flex gap-2">
+                <a href="{% url 'dashboard' %}" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition font-medium whitespace-nowrap text-sm text-center flex items-center shadow-sm">
+                    Dashboard
+                </a>
+                <a href="{% url 'painel_gestao' %}" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition font-medium whitespace-nowrap text-sm text-center flex items-center shadow-sm">
+                    Voltar ao Painel
+                </a>
+            </div>
+        </div>
 
         {% if msg %}
-            <div class="alert {% if 'sucesso' in msg %}alert-success{% else %}alert-error{% endif %}">
+            <div class="mb-6 p-4 rounded-xl text-sm font-medium border {% if 'sucesso' in msg|lower %}bg-green-50 text-green-800 border-green-200{% else %}bg-red-50 text-red-800 border-red-200{% endif %}">
                 {{ msg }}
             </div>
         {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" id="uploadForm" class="space-y-6">
+            {% csrf_token %}
+
+            <div id="dropArea" class="relative border-2 border-dashed border-slate-300 rounded-xl p-12 flex flex-col items-center justify-center text-center hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 group bg-slate-50">
+                
+                <div id="fileIcon" class="text-5xl mb-4 text-slate-400 group-hover:text-blue-500 transition-colors group-hover:scale-110 duration-200">
+                    📄
+                </div>
+                
+                <span id="fileMsg" class="text-slate-700 font-semibold mb-1 text-lg">Clique ou arraste os arquivos aqui</span>
+                <span class="text-slate-500 text-sm">Formatos suportados: .csv, .xlsx</span>
+                
+                <input 
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                    type="file" 
+                    name="file" 
+                    id="fileInput"
+                    accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    multiple 
+                    required
+                >
+            </div>
+
+            <div class="pt-2">
+                <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-3.5 rounded-xl hover:bg-blue-700 transition-colors font-bold text-sm shadow-md disabled:bg-slate-400 disabled:cursor-not-allowed">
+                    PROCESSAR PLANILHAS
+                </button>
+            </div>
+        </form>
+
     </div>
 
     <script>
@@ -49,7 +70,9 @@
         const dropArea  = document.getElementById('dropArea');
         const submitBtn = document.getElementById('submitBtn');
         const uploadForm = document.getElementById('uploadForm');
+        const fileIcon   = document.getElementById('fileIcon');
 
+        // Quando o usuário seleciona ou solta um arquivo
         fileInput.addEventListener('change', function () {
             if (fileInput.files.length > 1) {
                 fileMsg.textContent = fileInput.files.length + ' arquivos selecionados';
@@ -58,18 +81,37 @@
             } else {
                 fileMsg.textContent = 'Clique ou arraste os arquivos aqui';
             }
-            fileMsg.style.color = fileInput.files.length ? '#2563eb' : '#1e293b';
+            
+            // Muda a cor da área para dar feedback visual de que está preenchido
+            if(fileInput.files.length > 0) {
+                fileMsg.classList.replace('text-slate-700', 'text-blue-700');
+                dropArea.classList.add('border-blue-500', 'bg-blue-50');
+                fileIcon.classList.replace('text-slate-400', 'text-blue-600');
+            } else {
+                fileMsg.classList.replace('text-blue-700', 'text-slate-700');
+                dropArea.classList.remove('border-blue-500', 'bg-blue-50');
+                fileIcon.classList.replace('text-blue-600', 'text-slate-400');
+            }
         });
 
-        ['dragenter', 'dragover'].forEach(e =>
-            fileInput.addEventListener(e, () => dropArea.classList.add('is-active'))
-        );
-        ['dragleave', 'drop'].forEach(e =>
-            fileInput.addEventListener(e, () => dropArea.classList.remove('is-active'))
-        );
+        // Efeitos de Hover ao arrastar o arquivo por cima da tela
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileInput.addEventListener(eventName, () => {
+                dropArea.classList.add('border-blue-500', 'bg-blue-50');
+            });
+        });
 
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileInput.addEventListener(eventName, () => {
+                if (fileInput.files.length === 0) {
+                    dropArea.classList.remove('border-blue-500', 'bg-blue-50');
+                }
+            });
+        });
+
+        // Efeito de carregamento no botão após enviar
         uploadForm.addEventListener('submit', function () {
-            submitBtn.textContent = 'Processando...';
+            submitBtn.innerHTML = '<span class="animate-pulse">Processando arquivos, aguarde...</span>';
             submitBtn.disabled = true;
         });
     </script>

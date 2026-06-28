@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="5;url={% url 'admin:login' %}" />
+    <title>Sessão encerrada - EstoquePro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800 flex items-center justify-center p-4 sm:p-6">
+
+    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg w-full max-w-md border border-slate-100 text-center">
+
+        <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 shadow-sm border border-amber-200">
+            ⚠️
+        </div>
+
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Sessão encerrada</h1>
+        <p class="text-sm text-slate-500 mb-6">
+            Sua conta foi acessada em outro dispositivo.<br>
+            Por segurança, você foi desconectado.
+        </p>
+
+        <p class="text-xs text-slate-400 mb-4">
+            Você será redirecionado para o login em <span id="contador" class="font-bold text-slate-600">5</span> segundos.
+        </p>
+
+        <a href="{% url 'admin:login' %}"
+           class="inline-block w-full bg-amber-600 text-white py-3 rounded-xl hover:bg-amber-700 transition-colors font-bold text-sm shadow-md">
+            Ir para o login agora
+        </a>
+
+        <div class="mt-4 text-center">
+            <a href="{% url 'painel_gestao' %}" class="text-sm text-slate-500 hover:underline">
+                ← Voltar ao Painel
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let segundos = 5;
+        const el = document.getElementById('contador');
+        setInterval(() => {
+            segundos--;
+            if (segundos >= 0) el.textContent = segundos;
+            if (segundos <= 0) window.location.href = "{% url 'admin:login' %}";
+        }, 1000);
+    </script>
+
+</body>
+</html>

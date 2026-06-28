@@ -38,7 +38,6 @@ class Rua(models.Model):
     
     ordem = models.IntegerField(default=0, verbose_name="Ordem de Exibição")
 
-    
     modelo_planilha = models.ForeignKey(
         ModeloPlanilha,
         on_delete=models.SET_NULL,
@@ -47,12 +46,12 @@ class Rua(models.Model):
         verbose_name="Modelo da Planilha"
     )
 
-    # Controle de Soft Delete
+    
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
 
-    # Managers
+   
     objects = SoftDeleteManager()
-    all_objects = models.Manager()  #
+    all_objects = models.Manager()
 
     def delete(self, *args, **kwargs):
         """Sobrescreve a exclusão física para apenas desativar o registro"""
@@ -116,10 +115,9 @@ class Endereco(models.Model):
         verbose_name="Posição"
     )
 
-    # Controle de Soft Delete
+    
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
 
-    
     ultima_contagem_em = models.DateTimeField(
         blank=True,
         null=True,
@@ -130,7 +128,7 @@ class Endereco(models.Model):
         verbose_name="Já foi contado?"
     )
 
-    # Managers
+    
     objects = SoftDeleteManager()
     all_objects = models.Manager()
 
@@ -152,6 +150,7 @@ class PerfilOperador(models.Model):
         OPERADOR = 'OPERADOR', 'Operador (Apenas App)'
         LIDER = 'LIDER', 'Líder de Rua (App + Painel Básico)'
         GESTOR = 'GESTOR', 'Gestor de Estoque (Acesso Total)'
+        
 
     user = models.OneToOneField(
         User,
@@ -173,13 +172,14 @@ class PerfilOperador(models.Model):
         verbose_name="Ruas Autorizadas"
     )
 
-    
     push_token = models.CharField(
         max_length=255,
         blank=True,
         null=True,
         verbose_name="Push Token (Expo)"
     )
+    
+    current_session_key = models.CharField(max_length=40, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} ({self.get_cargo_display()})"
@@ -192,7 +192,7 @@ class PerfilOperador(models.Model):
 class Produto(models.Model):
     codigo = models.CharField(
         max_length=6,
-        unique=True,
+        
         verbose_name="Código do Produto",
         help_text="Código com exatamente 6 dígitos (ex.: 123456)"
     )
@@ -251,15 +251,25 @@ class Produto(models.Model):
         null=True,
         verbose_name="Tipo"
     )
+    
+    unidades_por_pack = models.IntegerField(
+    blank=True, null=True,
+    verbose_name="Unidades por Pack",
+    help_text="Ex: 24"
+    )
+    packs_por_pallet = models.IntegerField(
+    blank=True, null=True,
+    verbose_name="Packs por Pallet",
+    help_text="Ex: 48"
+    )
 
-    # Controle de Soft Delete
+    
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
 
-    # Managers
+    
     objects = SoftDeleteManager()
     all_objects = models.Manager()
 
-    
     history = HistoricalRecords()
 
     def delete(self, *args, **kwargs):
@@ -272,6 +282,14 @@ class Produto(models.Model):
     class Meta:
         verbose_name = "Produto"
         verbose_name_plural = "Produtos"
+        
+        constraints = [
+            models.UniqueConstraint(
+                fields=['codigo'],
+                condition=models.Q(ativo=True),
+                name='unique_codigo_produto_ativo'
+            )
+        ]
 
 
 class Contagem(models.Model):
@@ -370,11 +388,9 @@ class Contagem(models.Model):
         verbose_name="Data da contagem"
     )
 
-   
     history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
-        
         if self.data_hora and not self.data_contagem:
             self.data_contagem = self.data_hora.date()
         super().save(*args, **kwargs)
@@ -406,7 +422,6 @@ class TarefaRecontagem(models.Model):
         EM_ANDAMENTO = 'EM_ANDAMENTO', 'Em Andamento'
         CONCLUIDO = 'CONCLUIDO', 'Concluído'
 
-   
     class Criticidade(models.TextChoices):
         BAIXA = 'BAIXA', 'Baixa'
         MEDIA = 'MEDIA', 'Média'
@@ -439,7 +454,6 @@ class TarefaRecontagem(models.Model):
         default=Status.PENDENTE
     )
 
-    
     criticidade = models.CharField(
         max_length=10,
         choices=Criticidade.choices,
@@ -473,7 +487,6 @@ class TarefaRecontagem(models.Model):
         ordering = ['status', '-criado_em']
 
 
-
 @receiver(post_save, sender=User)
 def salvar_perfil_operador(sender, instance, **kwargs):
     if hasattr(instance, 'perfil'):
@@ -504,7 +517,7 @@ def notificar_nova_missao(sender, instance, created, **kwargs):
         except Exception as e:
             print(f"Falha ao processar notificação push: {e}")
             
-            
+
 class ConfiguracaoSistema(models.Model):
     """Configurações globais do sistema, apenas um registro."""
     versao_minima_app = models.CharField(
@@ -514,7 +527,6 @@ class ConfiguracaoSistema(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        
         self.pk = 1
         super().save(*args, **kwargs)
 
@@ -529,3 +541,38 @@ class ConfiguracaoSistema(models.Model):
     class Meta:
         verbose_name = 'Configuração do Sistema'
         verbose_name_plural = 'Configurações do Sistema'
+        
+        
+class Avaria(models.Model):
+    class TipoUnidade(models.TextChoices):
+        PALLET = 'pallet', 'Pallet'
+        PACK   = 'pack', 'Pack'
+        UNIDADE = 'unidade', 'Unidade'
+
+    operador = models.ForeignKey(
+        User, on_delete=models.PROTECT,
+        verbose_name="Operador"
+    )
+    produto = models.ForeignKey(
+        Produto, on_delete=models.PROTECT,
+        verbose_name="Produto"
+    )
+    codigo_produto = models.CharField(
+        max_length=6, verbose_name="Código do Produto"
+    )
+    descricao_produto = models.CharField(
+        max_length=255, verbose_name="Descrição"
+    )
+    quantidade = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        verbose_name="Quantidade"
+    )
+    tipo_unidade = models.CharField(
+        max_length=10, choices=TipoUnidade.choices,
+        verbose_name="Tipo de Unidade"
+    )
+    observacao = models.TextField(blank=True, null=True)
+    data_hora = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Avaria {self.codigo_produto} ({self.quantidade} {self.tipo_unidade})"

@@ -6,12 +6,15 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 import os
 import socket
 from django.conf import settings
+from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
     
     path('', RedirectView.as_view(url='admin/', permanent=False)),
     path('admin/', admin.site.urls),
+    
+    path('logout/', auth_views.LogoutView.as_view(next_page='/admin/login/'), name='logout'),
 
     
     path('api/v1/', include('core.urls')),
