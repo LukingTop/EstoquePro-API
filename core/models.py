@@ -292,6 +292,37 @@ class Produto(models.Model):
         ]
 
 
+
+class ContagemSessao(models.Model):
+    class TipoContagem(models.TextChoices):
+        PRIMEIRA = 'PRIMEIRA', '1ª Contagem'
+        SEGUNDA = 'SEGUNDA', '2ª Contagem'
+        TERCEIRA = 'TERCEIRA', '3ª Contagem (Definitiva)'
+        AVARIA = 'AVARIA', 'Avaria'
+
+    titulo = models.CharField(max_length=100)
+    criado_por = models.ForeignKey(User, on_delete=models.PROTECT)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    ativo = models.BooleanField(default=True)
+    inicio = models.DateTimeField(null=True, blank=True)
+    fim = models.DateTimeField(null=True, blank=True)
+    ruas = models.ManyToManyField(Rua, blank=True)
+    tipo = models.CharField(
+        max_length=20, choices=TipoContagem.choices, default=TipoContagem.PRIMEIRA
+    )
+    # Se True, o operador verá a quantidade do último inventário como placeholder
+    contagem_informada = models.BooleanField(default=False)
+    # Sessão pai (para 2ª e 3ª contagens)
+    sessao_origem = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL
+    )
+    # Qual sessão foi validada como correta (preenchido pelo admin ao final)
+    sessao_validada = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='validada_por'
+    )
+
+
 class Contagem(models.Model):
     operador = models.ForeignKey(
         User,
@@ -386,6 +417,11 @@ class Contagem(models.Model):
         null=True,
         db_index=True,
         verbose_name="Data da contagem"
+    )
+    
+    sessao = models.ForeignKey(
+        ContagemSessao, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name="Sessão"
     )
 
     history = HistoricalRecords()

@@ -38,6 +38,8 @@ router.register(
 
 router.register(r'avarias', views.AvariaViewSet, basename='avaria')
 
+router.register(r'sessoes', views.ContagemSessaoViewSet, basename='sessoes')
+
 
 urlpatterns = [
     # 1. Redireciona quem acessar a raiz exata (/) para o painel de gestão
@@ -116,6 +118,16 @@ urlpatterns = [
     
     # API de conversão (usada pelo JavaScript do conversor)
     path('conversao-avaria/', views.conversao_avaria, name='conversao_avaria'),
+    
+    path('criar-sessao/', views.criar_sessao, name='criar_sessao'),
+
+    path('validar-sessao/<int:sessao_id>/', views.validar_sessao, name='validar_sessao'),
+    
+    path('comparar-sessoes/', views.comparar_sessoes, name='comparar_sessoes'),
+    
+    path('gestao/ciclo/<int:sessao_id>/', views.detalhes_ciclo, name='detalhes_ciclo'),
+    
+    path('gestao/ciclo/<int:sessao_id>/exportar/', views.exportar_ciclo, name='exportar_ciclo'),
 
     # Página HTML do conversor (acessada pelo painel)
     path('conversor-avaria/', views.conversor_avaria_web, name='conversor_avaria_web'),

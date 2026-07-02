@@ -17,32 +17,66 @@ Este é o repositório do backend do sistema **EstoquePro**, responsável por ge
 
 * **Autenticação Segura:** Login via JWT para os operadores do aplicativo.
 * **Painel de Gestão:** Interface web administrativa para criação de usuários, missões e acompanhamento do progresso das contagens.
+* **Criação de Ciclos de Contagem:** Agende e configure contagens sequenciais por rua ou setor.
+* **Exportação de Relatórios:** Gere planilhas Excel completas com contagens, avarias e registros de stage.
+* **Acompanhamento em Tempo Real:** Visualize o progresso dos ciclos ativos e o histórico de contagens.
 * **Filtros e Relatórios:** Views dedicadas para cálculo de ranking de operadores e métricas diárias.
 * **Segurança de Produção:** Variáveis de ambiente configuradas, CORS protegido e tratamento de falhas em chamadas de API.
 
-# 🛠️ Como rodar o projeto localmente (com Docker)
+# 📋 Pré‑requisitos
 
-Pré-requisito: Tenha o **Docker** e o **Docker Desktop** instalados na sua máquina. Não é necessário instalar Python ou PostgreSQL nativamente.
+* **Docker** e **Docker Compose** instalados ([Download Docker](https://docs.docker.com/get-docker/)).
+* (Opcional) Python 3.13 e PostgreSQL se desejar rodar sem containers.
 
-**1. Clone este repositório:**
+# 🔧 Configuração Inicial
 
-```bash
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/LukingTop/EstoquePro-Backend.git
+   cd EstoquePro-Backend
 
-# Configure as variáveis de ambiente:
+ 2. **Configure as variáveis de ambiente:**
 
+bash
 cp .env.example .env
+Edite o arquivo .env com suas credenciais:
 
-# Abra o arquivo .env e preencha as variáveis de ambiente necessárias.
+ini
+SECRET_KEY='sua-chave-secreta'
+DEBUG=True
+DB_HOST=db
+DB_NAME=estoquepro
+DB_USER=postgres
+DB_PASSWORD='sua-senha'
+DB_PORT=5432
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,*
 
-#Suba os containers (Banco de Dados + API):
+3. **Suba os containers (PostgreSQL + Django):**
 
-docker compose up --build
+bash
+docker-compose up -d --build
 
-#Em um novo terminal, rode as migrações do banco de dados:
+4. **Execute as migrações do banco de dados:**
 
-docker compose exec web python manage.py migrate
+bash
+docker-compose exec web python manage.py migrate
 
-# Crie o seu usuário administrador:
+5. **Crie o superusuário (administrador):**
 
-docker compose exec web python manage.py createsuperuser
+bash
+docker-compose exec web python manage.py createsuperuser
 
+6. **Acesse o painel administrativo:**
+
+Abra http://localhost:8000/admin/ e faça login com o superusuário.
+
+**🐳 Comandos Docker úteis**
+
+Parar os containers: docker-compose down
+
+Ver logs: docker-compose logs -f web
+
+Acessar o shell do Django: docker-compose exec web python manage.py shell
+
+📄 Licença
+Este projeto é de uso interno da CargoPolo – Inventário Rotativo de Estoque. Todos os direitos reservados.

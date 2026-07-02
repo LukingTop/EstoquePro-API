@@ -5,7 +5,8 @@ from .models import (
     Rua,
     Endereco,
     TarefaRecontagem,
-    Avaria  
+    Avaria,
+    ContagemSessao  
 )
 
 
@@ -72,7 +73,37 @@ class TarefaRecontagemSerializer(serializers.ModelSerializer):
         model = TarefaRecontagem
         fields = '__all__'
         
+
 class AvariaSerializer(serializers.ModelSerializer):
+    codigo_produto = serializers.CharField(write_only=True)
+    produto = serializers.PrimaryKeyRelatedField(read_only=True)
+    operador = serializers.PrimaryKeyRelatedField(read_only=True)   # ← novo
+    total_pallets = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
     class Meta:
         model = Avaria
         fields = '__all__'
+
+    def create(self, validated_data):
+        codigo = validated_data.pop('codigo_produto')
+        try:
+            produto = Produto.objects.get(codigo=codigo)
+        except Produto.DoesNotExist:
+            raise serializers.ValidationError({'codigo_produto': 'Produto não encontrado.'})
+        validated_data['produto'] = produto
+        validated_data['codigo_produto'] = codigo   
+        return super().create(validated_data)
+        
+class ContagemSessaoSerializer(serializers.ModelSerializer):
+    ruas_codigos = serializers.SerializerMethodField()
+    criado_por_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContagemSessao
+        fields = ['id', 'titulo', 'ativo', 'inicio', 'fim', 'ruas_codigos', 'criado_por_username']
+
+    def get_ruas_codigos(self, obj):
+        return [r.codigo for r in obj.ruas.all()]
+
+    def get_criado_por_username(self, obj):
+        return obj.criado_por.username if obj.criado_por else None

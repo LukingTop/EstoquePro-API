@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ sessao.titulo }} - Acompanhamento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .progress-fill {
+            transition: width 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800 p-4 sm:p-6">
+
+    <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200">
+
+        <!-- Cabeçalho -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-5 mb-6 gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-3xl font-bold text-slate-800">{{ sessao.titulo }}</h1>
+                    {% if sessao.ativo %}
+                        <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Em Andamento</span>
+                    {% else %}
+                        <span class="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full uppercase">Finalizado</span>
+                    {% endif %}
+                </div>
+                <div class="flex gap-4 mt-2 text-sm text-slate-500 font-medium">
+                    <span>🔹 ID: {{ sessao.id }}</span>
+                    <span>📦 {{ sessao.get_tipo_display }}</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'exportar_ciclo' sessao.id %}" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition font-medium text-sm flex items-center gap-2 shadow-sm">
+                    📥 Exportar Contagens
+                </a>
+                <a href="{% url 'painel_gestao' %}" class="bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2 rounded-lg hover:bg-blue-100 transition font-medium text-sm flex items-center gap-2 shadow-sm">
+                    ← Voltar ao Painel
+                </a>
+            </div>
+        </div>
+
+        <!-- Grid de Estatísticas -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Total de Endereços</p>
+                <p class="text-3xl font-extrabold text-slate-800 mt-1">{{ total_enderecos }}</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Endereços Contados</p>
+                <p class="text-3xl font-extrabold text-slate-800 mt-1">{{ enderecos_contados }}</p>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 p-5 rounded-xl">
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wide">Progresso</p>
+                <p class="text-3xl font-extrabold text-blue-700 mt-1">{{ percentual }}%</p>
+                <div class="w-full bg-blue-200 rounded-full h-2 mt-3">
+                    <div class="bg-blue-600 h-2 rounded-full progress-fill" style="width: {{ percentual }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimos Itens Contados -->
+        <h2 class="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
+            ⏱️ Últimos Itens Contados
+        </h2>
+
+        <ul class="divide-y border border-slate-200 rounded-xl overflow-hidden">
+            {% for contagem in ultimas_contagens %}
+                <li class="flex justify-between items-center p-4 hover:bg-slate-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-green-100 text-green-700 rounded-full p-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-800">{{ contagem.endereco.codigo }} • <span class="text-slate-600">{{ contagem.codigo_produto }}</span></p>
+                            <p class="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                👤 {{ contagem.operador.username }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold px-2 py-1 rounded-md">{{ contagem.pallets }} Pallets</span>
+                        <p class="text-xs text-slate-400 mt-1">{{ contagem.data_hora|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="p-8 text-center text-slate-400">
+                    <p>Nenhuma contagem registrada ainda.</p>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+</body>
+</html>

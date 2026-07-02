@@ -18,6 +18,7 @@ from django.urls import path
 from django.shortcuts import render, redirect
 from .forms import RecontagemPorRuaIntervaloForm
 
+
 # ============================================================
 # ADMIN CUSTOMIZADO DO LOG ENTRY 
 # ============================================================
@@ -91,6 +92,7 @@ from .models import (
     TarefaRecontagem,
     ConfiguracaoSistema,
     ModeloPlanilha,
+    ContagemSessao
 )
 
 # ============================================================
@@ -111,6 +113,11 @@ class RuaAdmin(admin.ModelAdmin):
     search_fields = ('codigo',)
     ordering = ['ordem']
     fields = ('codigo',)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Exclui apenas ruas sem endereço associado
+        return qs.filter(enderecos__isnull=False).distinct()
 
 class EnderecoAdmin(admin.ModelAdmin):
     list_display = ('codigo', 'rua', 'predio_num', 'andar_num', 'posicao_num')
@@ -152,7 +159,6 @@ class ProdutoAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Ordena convertendo o código para inteiro 
         return qs.annotate(
             codigo_int=Cast('codigo', output_field=IntegerField())
         ).order_by('codigo_int', 'codigo')
@@ -409,5 +415,21 @@ def dashboard_index(request, extra_context=None):
     extra_context['grafico_pallets_data'] = json.dumps(pallets_data)
 
     return original_index(request, extra_context)
+
+class ContagemSessaoAdmin(admin.ModelAdmin):
+    list_display = ('titulo', 'criado_por', 'ativo', 'criado_em', 'inicio', 'fim')
+    list_filter = ('ativo',)
+    filter_horizontal = ('ruas',)
+    fields = ('titulo', 'ruas', 'ativo')
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.criado_por = request.user
+        super().save_model(request, obj, form, change)
+
+ContagemSessao._meta.verbose_name = "Sessão de Contagem"
+ContagemSessao._meta.verbose_name_plural = "Sessões de Contagem"
+        
+safe_register(ContagemSessao, ContagemSessaoAdmin)
 
 admin.site.index = dashboard_index
